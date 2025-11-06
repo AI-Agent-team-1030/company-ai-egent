@@ -31,3 +31,7 @@ echo "次のコマンドで開発サーバーを起動できます:"
 echo "  npm run dev"
 echo ""
 
+
+
+
+

@@ -1,152 +1,72 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, PlusIcon, AtSymbolIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { UsersIcon } from '@heroicons/react/24/outline'
 
-interface Agent {
+interface Department {
   id: string
   name: string
+  manager: string
+  members: number
   description: string
-  connections: string[]
-  tasks: string[]
-  status: 'active' | 'idle'
 }
 
 export default function OrganizationPage() {
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
-  const [showConnectMenu, setShowConnectMenu] = useState(false)
-  const [connectSearch, setConnectSearch] = useState('')
-  const [showAddAgentForm, setShowAddAgentForm] = useState(false)
-  const [newAgentForm, setNewAgentForm] = useState({
-    name: '',
-    description: '',
-    status: 'active' as 'active' | 'idle',
-  })
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [selectedDept, setSelectedDept] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (showConnectMenu && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [showConnectMenu])
-  
-  const initialAgents: Record<string, Agent> = {
-    ceo: {
-      id: 'ceo',
-      name: '経営AI',
-      description: '戦略的意思決定と全体統括',
-      connections: ['sales', 'marketing', 'hr', 'finance', 'dev', 'admin'],
-      tasks: ['経営方針策定', '予算配分', 'KPI管理'],
-      status: 'active',
-    },
-    sales: {
+  const ceo = {
+    name: '代表取締役',
+    person: '山田 太郎',
+    description: '全社の経営戦略と意思決定を統括',
+  }
+
+  const departments: Department[] = [
+    {
       id: 'sales',
-      name: '営業AI',
-      description: '新規顧客獲得と売上管理',
-      connections: ['marketing', 'ceo'],
-      tasks: ['リード発掘', '商談管理', '売上予測'],
-      status: 'active',
+      name: '営業部',
+      manager: '田中 一郎',
+      members: 15,
+      description: '新規顧客開拓と既存顧客フォロー',
     },
-    marketing: {
+    {
       id: 'marketing',
-      name: 'マーケティングAI',
-      description: '広告施策とブランディング',
-      connections: ['sales', 'ceo'],
-      tasks: ['キャンペーン企画', 'SNS運用', '効果測定'],
-      status: 'active',
+      name: 'マーケティング部',
+      manager: '佐藤 花子',
+      members: 8,
+      description: 'ブランディングと広告宣伝活動',
     },
-    hr: {
+    {
       id: 'hr',
-      name: '人事AI',
-      description: '採用と人材育成',
-      connections: ['ceo'],
-      tasks: ['採用計画', '評価管理', '研修企画'],
-      status: 'active',
+      name: '人事部',
+      manager: '鈴木 次郎',
+      members: 5,
+      description: '採用・育成・労務管理',
     },
-    finance: {
+    {
       id: 'finance',
-      name: '財務AI',
-      description: '予算管理と財務分析',
-      connections: ['ceo'],
-      tasks: ['予算策定', '経費分析', 'レポート作成'],
-      status: 'active',
+      name: '財務・経理部',
+      manager: '高橋 美咲',
+      members: 6,
+      description: '予算管理・経理処理・財務戦略',
     },
-    dev: {
+    {
       id: 'dev',
-      name: '開発AI',
-      description: 'システム開発と保守',
-      connections: ['ceo'],
-      tasks: ['機能開発', 'バグ修正', '技術選定'],
-      status: 'idle',
+      name: '開発部',
+      manager: '伊藤 健太',
+      members: 20,
+      description: 'システム開発と技術基盤の構築',
     },
-    admin: {
+    {
       id: 'admin',
-      name: '総務AI',
-      description: 'バックオフィス業務',
-      connections: ['ceo'],
-      tasks: ['契約管理', '備品管理', '施設管理'],
-      status: 'idle',
+      name: '総務部',
+      manager: '渡辺 由美',
+      members: 4,
+      description: 'バックオフィス業務全般',
     },
-  }
+  ]
 
-  const [agents, setAgents] = useState<Record<string, Agent>>(initialAgents)
-  const [departmentAgents, setDepartmentAgents] = useState(['sales', 'marketing', 'hr', 'finance', 'dev', 'admin'])
-  const selectedAgentData = selectedAgent ? agents[selectedAgent] : null
-
-  const availableToConnect = selectedAgent
-    ? Object.keys(agents).filter(
-        (id) =>
-          id !== selectedAgent &&
-          !agents[selectedAgent].connections.includes(id) &&
-          (!connectSearch || agents[id].name.toLowerCase().includes(connectSearch.toLowerCase()))
-      )
-    : []
-
-  const handleAddConnection = (targetId: string) => {
-    if (!selectedAgent) return
-    
-    setAgents(prev => {
-      const updated = { ...prev }
-      if (!updated[selectedAgent].connections.includes(targetId)) {
-        updated[selectedAgent].connections.push(targetId)
-      }
-      if (!updated[targetId].connections.includes(selectedAgent)) {
-        updated[targetId].connections.push(selectedAgent)
-      }
-      return updated
-    })
-    
-    setShowConnectMenu(false)
-    setConnectSearch('')
-  }
-
-  const handleAddAgent = () => {
-    if (!newAgentForm.name.trim()) return
-
-    const newId = `agent-${Date.now()}`
-    const newAgent: Agent = {
-      id: newId,
-      name: newAgentForm.name,
-      description: newAgentForm.description,
-      connections: [],
-      tasks: [],
-      status: newAgentForm.status,
-    }
-
-    setAgents(prev => ({ ...prev, [newId]: newAgent }))
-    setDepartmentAgents(prev => [...prev, newId])
-    
-    setNewAgentForm({ name: '', description: '', status: 'active' })
-    setShowAddAgentForm(false)
-  }
-
-  const isConnected = (agentId: string) => {
-    if (!selectedAgent) return false
-    return selectedAgent === agentId || 
-           agents[selectedAgent].connections.includes(agentId) ||
-           agents[agentId].connections.includes(selectedAgent)
-  }
+  const selectedDepartment = departments.find(d => d.id === selectedDept)
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -156,153 +76,29 @@ export default function OrganizationPage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-12"
       >
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">組織図</h1>
-            <p className="text-gray-600">AIエージェントをクリックして連携を確認・追加</p>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAddAgentForm(true)}
-            className="px-6 py-3 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center gap-2"
-          >
-            <PlusIcon className="w-5 h-5" />
-            新規エージェント追加
-          </motion.button>
-        </div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">組織図</h1>
+        <p className="text-gray-600">会社の組織構造と各部署の情報</p>
       </motion.div>
 
-      {/* Add Agent Modal */}
-      <AnimatePresence>
-        {showAddAgentForm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">新規AIエージェント</h2>
-                <button
-                  onClick={() => {
-                    setShowAddAgentForm(false)
-                    setNewAgentForm({ name: '', description: '', status: 'active' })
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <XMarkIcon className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    エージェント名 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newAgentForm.name}
-                    onChange={(e) => setNewAgentForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="例：カスタマーサポートAI"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-black focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    説明
-                  </label>
-                  <textarea
-                    value={newAgentForm.description}
-                    onChange={(e) => setNewAgentForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="このAIエージェントの役割を入力..."
-                    rows={3}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-black focus:outline-none resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    ステータス
-                  </label>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setNewAgentForm(prev => ({ ...prev, status: 'active' }))}
-                      className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                        newAgentForm.status === 'active'
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      稼働中
-                    </button>
-                    <button
-                      onClick={() => setNewAgentForm(prev => ({ ...prev, status: 'idle' }))}
-                      className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                        newAgentForm.status === 'idle'
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      待機中
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowAddAgentForm(false)
-                    setNewAgentForm({ name: '', description: '', status: 'active' })
-                  }}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-bold"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={handleAddAgent}
-                  disabled={!newAgentForm.name.trim()}
-                  className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  追加
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <div className="flex gap-8">
-        {/* Hierarchical Structure */}
+        {/* Organization Chart */}
         <div className="flex-1">
-          <div className="max-w-6xl mx-auto">
-            {/* CEO AI - Top Center */}
+          <div className="max-w-5xl mx-auto">
+            {/* CEO */}
             <div className="flex justify-center mb-12">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 }}
-                onClick={() => setSelectedAgent(selectedAgent === 'ceo' ? null : 'ceo')}
-                className={`cursor-pointer w-96 bg-white rounded-2xl p-6 shadow-lg border-2 transition-all ${
-                  selectedAgent === 'ceo'
-                    ? 'border-black shadow-2xl'
-                    : 'border-gray-200 hover:border-gray-400'
-                }`}
+                className="w-80 bg-white rounded-lg p-6 shadow-md border-2 border-gray-300"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-2xl font-bold text-gray-900">{agents.ceo.name}</h3>
-                  <div className={`w-3 h-3 rounded-full ${
-                    agents.ceo.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                  }`} />
-                </div>
-                <p className="text-sm text-gray-600 mb-4">{agents.ceo.description}</p>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>連携: {agents.ceo.connections.length}件</span>
-                  <span>•</span>
-                  <span>タスク: {agents.ceo.tasks.length}件</span>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <UsersIcon className="w-8 h-8 text-gray-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{ceo.name}</h3>
+                  <p className="text-sm font-medium text-gray-700 mb-2">{ceo.person}</p>
+                  <p className="text-xs text-gray-600">{ceo.description}</p>
                 </div>
               </motion.div>
             </div>
@@ -312,25 +108,24 @@ export default function OrganizationPage() {
               <div className="w-0.5 h-16 bg-gray-300" />
             </div>
 
-            {/* Department AIs - Bottom Grid with Connection Lines */}
+            {/* Departments */}
             <div className="relative">
               {/* Connection Lines */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-                {departmentAgents.map((agentId, index) => {
-                  const isHighlighted = isConnected(agentId) || selectedAgent === 'ceo'
+                {departments.map((dept, index) => {
                   const col = index % 3
                   const row = Math.floor(index / 3)
-                  
+                  const isSelected = selectedDept === dept.id
+
                   return (
                     <line
-                      key={agentId}
+                      key={dept.id}
                       x1="50%"
                       y1="0"
                       x2={`${(col * 33.33) + 16.67}%`}
                       y2={`${row * 50 + 15}%`}
-                      stroke={isHighlighted ? '#000' : '#d1d5db'}
-                      strokeWidth={isHighlighted ? 2 : 1}
-                      strokeDasharray="5,5"
+                      stroke={isSelected ? '#000' : '#d1d5db'}
+                      strokeWidth={isSelected ? 2 : 1}
                     />
                   )
                 })}
@@ -338,36 +133,31 @@ export default function OrganizationPage() {
 
               {/* Department Cards */}
               <div className="grid grid-cols-3 gap-6 relative" style={{ zIndex: 10 }}>
-                {departmentAgents.map((agentId, index) => {
-                  const agent = agents[agentId]
-                  const isSelected = selectedAgent === agentId
-                  const isHighlighted = isConnected(agentId)
-                  
+                {departments.map((dept, index) => {
+                  const isSelected = selectedDept === dept.id
+
                   return (
                     <motion.div
-                      key={agentId}
+                      key={dept.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 + index * 0.1 }}
-                      onClick={() => setSelectedAgent(isSelected ? null : agentId)}
-                      className={`cursor-pointer bg-white rounded-xl p-4 shadow-md border-2 transition-all ${
+                      onClick={() => setSelectedDept(isSelected ? null : dept.id)}
+                      className={`cursor-pointer bg-white rounded-lg p-5 shadow-md border-2 transition-all ${
                         isSelected
-                          ? 'border-black shadow-2xl'
-                          : isHighlighted
-                          ? 'border-gray-400 shadow-lg'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-gray-900 shadow-xl'
+                          : 'border-gray-200 hover:border-gray-400'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-gray-900">{agent.name}</h4>
-                        <div className={`w-2.5 h-2.5 rounded-full ${
-                          agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
+                      <div className="mb-3">
+                        <h4 className="text-lg font-bold text-gray-900 mb-1">{dept.name}</h4>
+                        <p className="text-sm text-gray-600">{dept.manager}</p>
                       </div>
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">{agent.description}</p>
-                      <div className="text-xs text-gray-500">
-                        連携: {agent.connections.length}件
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <UsersIcon className="w-4 h-4" />
+                        <span>{dept.members}名</span>
                       </div>
+                      <p className="text-xs text-gray-600">{dept.description}</p>
                     </motion.div>
                   )
                 })}
@@ -376,159 +166,78 @@ export default function OrganizationPage() {
           </div>
         </div>
 
-        {/* Agent Detail Panel */}
-        <AnimatePresence>
-          {selectedAgentData && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="w-96 bg-white border-2 border-gray-900 rounded-2xl p-6 shadow-xl"
-              style={{ height: 'fit-content', position: 'sticky', top: '2rem' }}
-            >
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                    {selectedAgentData.name}
-                  </h2>
-                  <p className="text-sm text-gray-600">{selectedAgentData.description}</p>
-                </div>
-                <button
-                  onClick={() => setSelectedAgent(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <XMarkIcon className="w-5 h-5 text-gray-600" />
-                </button>
+        {/* Department Detail Panel */}
+        {selectedDepartment && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="w-96 bg-white border-2 border-gray-900 rounded-lg p-6 shadow-xl"
+            style={{ height: 'fit-content', position: 'sticky', top: '2rem' }}
+          >
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {selectedDepartment.name}
+              </h2>
+              <p className="text-sm text-gray-600">{selectedDepartment.description}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="pb-4 border-b border-gray-200">
+                <h3 className="text-xs font-bold text-gray-700 uppercase mb-2">部門長</h3>
+                <p className="text-lg font-medium text-gray-900">{selectedDepartment.manager}</p>
               </div>
 
-              {/* Status */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="pb-4 border-b border-gray-200">
+                <h3 className="text-xs font-bold text-gray-700 uppercase mb-2">メンバー数</h3>
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    selectedAgentData.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                  }`} />
-                  <span className="text-sm font-bold text-gray-900">
-                    {selectedAgentData.status === 'active' ? '稼働中' : '待機中'}
-                  </span>
+                  <UsersIcon className="w-5 h-5 text-gray-600" />
+                  <p className="text-lg font-medium text-gray-900">{selectedDepartment.members}名</p>
                 </div>
               </div>
 
-              {/* Tasks */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase">担当タスク</h3>
-                <div className="space-y-2">
-                  {selectedAgentData.tasks.map((task, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-gray-400 mt-1">•</span>
-                      <span>{task}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Connections */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase">
-                  連携先 ({selectedAgentData.connections.length})
-                </h3>
-                <div className="space-y-2">
-                  {selectedAgentData.connections.map((connId) => {
-                    const connAgent = agents[connId]
-                    return (
-                      <motion.button
-                        key={connId}
-                        whileHover={{ x: 4 }}
-                        onClick={() => setSelectedAgent(connId)}
-                        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            connAgent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                          }`} />
-                          <div>
-                            <p className="font-bold text-sm text-gray-900">{connAgent.name}</p>
-                            <p className="text-xs text-gray-600">{connAgent.description}</p>
-                          </div>
-                        </div>
-                      </motion.button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Add Connection */}
               <div>
-                {!showConnectMenu ? (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowConnectMenu(true)}
-                    className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <PlusIcon className="w-5 h-5" />
-                    連携先を追加
-                  </motion.button>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-3"
-                  >
-                    <div className="relative">
-                      <AtSymbolIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        value={connectSearch}
-                        onChange={(e) => setConnectSearch(e.target.value)}
-                        placeholder="@AIエージェントを検索..."
-                        className="w-full pl-10 pr-4 py-3 border-2 border-black rounded-lg focus:outline-none text-sm"
-                      />
-                    </div>
-
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                      {availableToConnect.length > 0 ? (
-                        availableToConnect.map((agentId) => {
-                          const agent = agents[agentId]
-                          return (
-                            <motion.button
-                              key={agentId}
-                              whileHover={{ x: 4 }}
-                              onClick={() => handleAddConnection(agentId)}
-                              className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
-                            >
-                              <div className={`w-2 h-2 rounded-full ${
-                                agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                              }`} />
-                              <div className="flex-1">
-                                <p className="font-bold text-sm text-gray-900">{agent.name}</p>
-                                <p className="text-xs text-gray-600">{agent.description}</p>
-                              </div>
-                            </motion.button>
-                          )
-                        })
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          {connectSearch ? '該当するAIが見つかりません' : 'すべてのAIと連携済みです'}
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setShowConnectMenu(false)
-                        setConnectSearch('')
-                      }}
-                      className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </motion.div>
-                )}
+                <h3 className="text-xs font-bold text-gray-700 uppercase mb-2">主な業務</h3>
+                <p className="text-sm text-gray-700">{selectedDepartment.description}</p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+            <button
+              onClick={() => setSelectedDept(null)}
+              className="w-full mt-6 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              閉じる
+            </button>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Company Stats */}
+      <div className="max-w-5xl mx-auto mt-12">
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">総従業員数</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {departments.reduce((sum, dept) => sum + dept.members, 0) + 1}名
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">部署数</div>
+            <div className="text-2xl font-bold text-gray-900">{departments.length}</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">平均部署人数</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {Math.round(departments.reduce((sum, dept) => sum + dept.members, 0) / departments.length)}名
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">最大部署</div>
+            <div className="text-lg font-bold text-gray-900">
+              {departments.reduce((max, dept) => dept.members > max.members ? dept : max).name}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

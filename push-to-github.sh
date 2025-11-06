@@ -74,3 +74,7 @@ git push -u origin main
 echo -e "\n${GREEN}🎉 成功！GitHubにプッシュされました${NC}"
 echo -e "リポジトリ: ${GREEN}https://github.com/AI-Agent-team-1030/company-ai-egent${NC}"
 
+
+
+
+
