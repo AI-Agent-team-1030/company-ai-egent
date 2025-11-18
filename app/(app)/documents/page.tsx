@@ -23,7 +23,7 @@ interface DocWithTags {
   department: string
   createdBy: string
   createdAt: Date
-  status: string
+  status?: string
   tags: string[]
   folder: string
 }
@@ -39,6 +39,8 @@ export default function DocumentsPage() {
   // ドキュメントにタグとフォルダを追加
   const documentsWithTags: DocWithTags[] = mockDocuments.map((doc, index) => ({
     ...doc,
+    department: doc.department || '全社',
+    status: doc.status || 'published',
     tags: index % 3 === 0 ? ['重要', '承認済み'] : index % 2 === 0 ? ['作成中', '要確認'] : ['完了'],
     folder: doc.type === 'report' ? 'レポート' :
             doc.type === 'proposal' ? '提案資料' :

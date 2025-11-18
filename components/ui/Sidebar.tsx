@@ -16,13 +16,17 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   SparklesIcon,
+  ChartBarIcon,
+  CubeTransparentIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'ダッシュボード', href: '/dashboard', icon: HomeIcon },
+  { name: 'アナリティクス', href: '/analytics', icon: ChartBarIcon },
   { name: 'AIチャット', href: '/chat', icon: ChatBubbleLeftRightIcon },
   { name: 'ゴール管理', href: '/goals', icon: ClipboardDocumentListIcon },
   { name: 'AIエージェント', href: '/agents', icon: SparklesIcon },
+  { name: 'シンプルエージェント', href: '/simple-agent', icon: CubeTransparentIcon },
   { name: 'ナレッジベース', href: '/knowledge', icon: BookOpenIcon },
   { name: 'ドキュメント', href: '/documents', icon: DocumentTextIcon },
   { name: '組織図', href: '/organization', icon: Squares2X2Icon },
@@ -91,9 +95,7 @@ export default function Sidebar() {
           const isActive = pathname === item.href
           return (
             <Link key={item.name} href={item.href}>
-              <motion.div
-                whileHover={{ x: isCollapsed ? 0 : 4 }}
-                whileTap={{ scale: 0.98 }}
+              <div
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-black text-white'
@@ -102,20 +104,12 @@ export default function Sidebar() {
                 title={isCollapsed ? item.name : undefined}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                <AnimatePresence>
-                  {!isCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="font-medium text-sm whitespace-nowrap overflow-hidden"
-                    >
-                      {item.name}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                {!isCollapsed && (
+                  <span className="font-medium text-sm whitespace-nowrap">
+                    {item.name}
+                  </span>
+                )}
+              </div>
             </Link>
           )
         })}

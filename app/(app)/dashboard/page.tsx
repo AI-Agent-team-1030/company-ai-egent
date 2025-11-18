@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { 
   ChartBarIcon,
   CheckCircleIcon,
@@ -34,25 +33,17 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">ダッシュボード</h1>
         <p className="text-gray-600">全体の状況を一目で確認</p>
-      </motion.div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
-          <motion.div
+          <div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -5 }}
-            className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+            className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-gray-100 rounded-lg">
@@ -61,18 +52,13 @@ export default function DashboardPage() {
             </div>
             <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
             <p className="text-sm text-gray-600">{stat.label}</p>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Recent Directives */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
-        >
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <ChartBarIcon className="w-6 h-6" />
@@ -96,25 +82,18 @@ export default function DashboardPage() {
                   <span className="text-lg font-bold text-gray-900">{directive.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${directive.progress}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="bg-gray-900 h-2 rounded-full"
+                  <div
+                    style={{ width: `${directive.progress}%` }}
+                    className="bg-gray-900 h-2 rounded-full transition-all"
                   />
                 </div>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* AI Agent Activities */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
-        >
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <BoltIcon className="w-6 h-6" />
@@ -130,11 +109,7 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={activity.status === 'active' ? {
-                        scale: [1, 1.2, 1],
-                      } : {}}
-                      transition={{ duration: 2, repeat: Infinity }}
+                    <div
                       className={`w-3 h-3 rounded-full ${
                         activity.status === 'active' ? 'bg-black' : 'bg-gray-300'
                       }`}
@@ -153,7 +128,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

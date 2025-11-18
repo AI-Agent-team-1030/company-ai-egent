@@ -78,3 +78,15 @@ echo -e "リポジトリ: ${GREEN}https://github.com/AI-Agent-team-1030/company-
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+

@@ -38,7 +38,7 @@ export default function KnowledgePage() {
     })
     .sort((a, b) => {
       if (sortBy === 'popular') return b.usageCount - a.usageCount
-      if (sortBy === 'rating') return b.rating - a.rating
+      if (sortBy === 'rating') return (b.rating ?? 0) - (a.rating ?? 0)
       return 0
     })
 

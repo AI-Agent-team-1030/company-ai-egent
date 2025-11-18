@@ -50,6 +50,116 @@ interface Goal {
   deliverable: string
 }
 
+interface NextStepSuggestion {
+  id: string
+  title: string
+  description: string
+  icon: any
+  category: 'analysis' | 'strategy' | 'execution' | 'reporting'
+  estimatedTime: string
+  priority: 'high' | 'medium' | 'low'
+}
+
+// Generate next step suggestions based on completed goal
+const generateNextStepSuggestions = (goal: Goal): NextStepSuggestion[] => {
+  const suggestions: NextStepSuggestion[] = []
+
+  // Based on goal title
+  if (goal.title.includes('EC') || goal.title.includes('売上')) {
+    suggestions.push(
+      {
+        id: 'scale-marketing',
+        title: 'マーケティング施策をスケールする',
+        description: '成功した施策を拡大し、広告予算を2倍に増やして売上を加速',
+        icon: RocketLaunchIcon,
+        category: 'execution',
+        estimatedTime: '2-3週間',
+        priority: 'high'
+      },
+      {
+        id: 'new-channel',
+        title: '新しい販売チャネルを開拓する',
+        description: 'Amazon、楽天などのモール出店や卸売チャネルの開拓',
+        icon: SparklesIcon,
+        category: 'strategy',
+        estimatedTime: '1-2ヶ月',
+        priority: 'high'
+      },
+      {
+        id: 'customer-retention',
+        title: '既存顧客のリテンション強化',
+        description: 'CRMを活用したリピート率向上とLTV最大化施策',
+        icon: UserGroupIcon,
+        category: 'execution',
+        estimatedTime: '2-4週間',
+        priority: 'medium'
+      }
+    )
+  }
+
+  if (goal.title.includes('採用')) {
+    suggestions.push(
+      {
+        id: 'onboarding',
+        title: 'オンボーディングプログラムを構築',
+        description: '新入社員の定着率を高める研修プログラムの設計',
+        icon: BookOpenIcon,
+        category: 'execution',
+        estimatedTime: '2-3週間',
+        priority: 'high'
+      },
+      {
+        id: 'employer-brand',
+        title: '採用ブランディングを強化',
+        description: '会社の魅力を発信し、応募数を増やす施策',
+        icon: LightBulbIcon,
+        category: 'strategy',
+        estimatedTime: '1ヶ月',
+        priority: 'medium'
+      }
+    )
+  }
+
+  // Always add these suggestions
+  suggestions.push(
+    {
+      id: 'next-goal',
+      title: '次のゴールを設定する',
+      description: '達成した勢いを活かして、次の大きな目標に挑戦',
+      icon: ChartBarIcon,
+      category: 'strategy',
+      estimatedTime: '即座',
+      priority: 'high'
+    },
+    {
+      id: 'report',
+      title: '経営層への報告資料を作成',
+      description: '成果と学びをまとめたプレゼンテーション資料を生成',
+      icon: PresentationChartLineIcon,
+      category: 'reporting',
+      estimatedTime: '1-2日',
+      priority: 'medium'
+    },
+    {
+      id: 'retrospective',
+      title: 'プロジェクトの振り返りを実施',
+      description: '成功要因と改善点を分析し、次回に活かす',
+      icon: DocumentTextIcon,
+      category: 'analysis',
+      estimatedTime: '半日',
+      priority: 'low'
+    }
+  )
+
+  // Return top 4 suggestions sorted by priority
+  return suggestions
+    .sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2 }
+      return priorityOrder[a.priority] - priorityOrder[b.priority]
+    })
+    .slice(0, 4)
+}
+
 export default function GoalDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -61,6 +171,7 @@ export default function GoalDetailPage() {
   const [elapsedTime, setElapsedTime] = useState(0)
   const [completedTasks, setCompletedTasks] = useState<TaskWithAI[]>([])
   const [currentTodoIndex, setCurrentTodoIndex] = useState(0)
+  const [nextSteps, setNextSteps] = useState<NextStepSuggestion[]>([])
 
   useEffect(() => {
     // Mock data
@@ -462,6 +573,29 @@ export default function GoalDetailPage() {
   const estimatedTimeRemaining = Math.round(totalRemainingTime + currentTaskRemainingTime) // in seconds
 
   const currentProgress = currentTask ? (elapsedTime / currentTask.estimatedTime) * 100 : 0
+  const isCompleted = completed === totalTasks
+
+  // Generate next steps when all tasks are completed
+  useEffect(() => {
+    console.log('useEffect triggered:', { isCompleted, goalExists: !!goal, nextStepsLength: nextSteps.length })
+    if (isCompleted && goal && nextSteps.length === 0) {
+      console.log('Generating next steps suggestions...')
+      const suggestions = generateNextStepSuggestions(goal)
+      console.log('Generated suggestions:', suggestions)
+      setNextSteps(suggestions)
+    }
+  }, [isCompleted, goal])
+
+  const handleNextStepClick = (suggestion: NextStepSuggestion) => {
+    if (suggestion.id === 'next-goal') {
+      router.push('/goals')
+    } else if (suggestion.id === 'report' || suggestion.id === 'retrospective') {
+      // Navigate to documents or create new document
+      alert(`${suggestion.title}を開始します`)
+    } else {
+      alert(`${suggestion.title}を開始します`)
+    }
+  }
 
   if (!goal) {
     return (
@@ -477,8 +611,6 @@ export default function GoalDetailPage() {
       </div>
     )
   }
-
-  const isCompleted = completed === totalTasks
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -854,13 +986,131 @@ export default function GoalDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-          <div className="text-center py-8">
-            <CheckCircleIcon className="w-20 h-20 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">すべてのタスクが完了しました</h2>
-            <p className="text-sm text-gray-600">全{totalTasks}個のタスクを正常に完了</p>
+        <>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
+            <div className="text-center py-8">
+              <CheckCircleIcon className="w-20 h-20 text-green-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">すべてのタスクが完了しました</h2>
+              <p className="text-sm text-gray-600">全{totalTasks}個のタスクを正常に完了</p>
+            </div>
           </div>
-        </div>
+
+          {/* Next Steps Suggestions - Always show for debugging */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 shadow-sm border-2 border-purple-200 mb-6"
+          >
+            <div className="mb-4 p-3 bg-yellow-100 rounded text-xs font-mono">
+              <div>Debug Info:</div>
+              <div>- isCompleted: {isCompleted ? 'true' : 'false'}</div>
+              <div>- completed: {completed}</div>
+              <div>- totalTasks: {totalTasks}</div>
+              <div>- nextSteps.length: {nextSteps.length}</div>
+              <div>- goal exists: {goal ? 'true' : 'false'}</div>
+            </div>
+
+            <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <SparklesIcon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">次のステップ</h2>
+                  <p className="text-sm text-gray-600">AIがおすすめする次のアクション</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {nextSteps.map((suggestion, index) => {
+                  const Icon = suggestion.icon
+                  const categoryColors = {
+                    analysis: 'from-blue-500 to-cyan-500',
+                    strategy: 'from-purple-500 to-pink-500',
+                    execution: 'from-orange-500 to-red-500',
+                    reporting: 'from-green-500 to-emerald-500'
+                  }
+
+                  const categoryBadgeColors = {
+                    analysis: 'bg-blue-100 text-blue-700 border-blue-200',
+                    strategy: 'bg-purple-100 text-purple-700 border-purple-200',
+                    execution: 'bg-orange-100 text-orange-700 border-orange-200',
+                    reporting: 'bg-green-100 text-green-700 border-green-200'
+                  }
+
+                  const categoryLabels = {
+                    analysis: '分析',
+                    strategy: '戦略',
+                    execution: '実行',
+                    reporting: 'レポート'
+                  }
+
+                  return (
+                    <motion.button
+                      key={suggestion.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      onClick={() => handleNextStepClick(suggestion)}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg transition-all text-left group relative overflow-hidden"
+                    >
+                      {/* Priority Badge */}
+                      {suggestion.priority === 'high' && (
+                        <div className="absolute top-3 right-3">
+                          <div className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                            優先
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Icon with Gradient */}
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className={`w-12 h-12 bg-gradient-to-br ${categoryColors[suggestion.category]} rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+                          <Icon className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-gray-900 mb-1 group-hover:text-purple-700 transition-colors">
+                            {suggestion.title}
+                          </h3>
+                          <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                            {suggestion.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs px-2 py-1 rounded-full border font-bold ${categoryBadgeColors[suggestion.category]}`}>
+                          {categoryLabels[suggestion.category]}
+                        </span>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <ClockIcon className="w-3.5 h-3.5" />
+                          {suggestion.estimatedTime}
+                        </div>
+                      </div>
+
+                      {/* Hover Arrow */}
+                      <motion.div
+                        className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                        initial={{ x: -10 }}
+                        whileHover={{ x: 0 }}
+                      >
+                        <ArrowLeftIcon className="w-5 h-5 text-purple-500 rotate-180" />
+                      </motion.div>
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+            {nextSteps.length === 0 && (
+              <div className="text-center text-gray-600 py-4">
+                次のステップ提案を生成中...
+              </div>
+            )}
+          </motion.div>
+        </>
       )}
 
       {/* Completed Tasks */}

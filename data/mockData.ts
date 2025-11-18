@@ -1252,7 +1252,7 @@ A: 業務に必要なものはIT部に申請してください。私的利用は
 Q: プリンターが使えない
 A: ドライバーの再インストールが必要な場合があります。IT部に連絡してください。`,
     category: 'IT・システム',
-    department: 'it',
+    department: 'development',
     tags: ['ITサポート', 'トラブル', 'PC', 'ヘルプデスク'],
     createdAt: new Date('2024-10-30'),
     updatedAt: new Date('2024-10-30'),
@@ -1388,7 +1388,7 @@ A: 再度法務部確認→押印申請の流れになります。
 Q: 英文契約の場合は？
 A: サイン（署名）対応。法務部と顧問弁護士が確認します。`,
     category: '総務',
-    department: 'legal',
+    department: 'general_affairs',
     tags: ['契約書', '押印', '法務', '承認フロー'],
     createdAt: new Date('2024-10-25'),
     updatedAt: new Date('2024-10-25'),

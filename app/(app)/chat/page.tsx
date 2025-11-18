@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import {
   SparklesIcon,
@@ -34,6 +33,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
   // 初回メッセージを設定
   useEffect(() => {
@@ -47,6 +47,14 @@ export default function ChatPage() {
     }
   }, [messages.length])
 
+  // クリーンアップ: コンポーネントのアンマウント時にすべてのタイマーをクリア
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      timeoutsRef.current = []
+    }
+  }, [])
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -54,6 +62,17 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // タイマーを管理するヘルパー関数
+  const createManagedTimeout = (callback: () => void, delay: number) => {
+    return new Promise<void>((resolve) => {
+      const timeoutId = setTimeout(() => {
+        callback()
+        resolve()
+      }, delay)
+      timeoutsRef.current.push(timeoutId)
+    })
+  }
 
   // ナレッジ検索ロジック
   const searchKnowledge = (query: string) => {
@@ -157,7 +176,7 @@ export default function ChatPage() {
     }
     setMessages((prev) => [...prev, searchMessage])
 
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await createManagedTimeout(() => {}, 800)
 
     // Step 3: 各ナレッジを確認
     for (let i = 0; i < relatedKnowledge.length; i++) {
@@ -176,11 +195,11 @@ export default function ChatPage() {
           : m
       ))
 
-      await new Promise(resolve => setTimeout(resolve, 600))
+      await createManagedTimeout(() => {}, 600)
     }
 
     // Step 4: 分析中
-    await new Promise(resolve => setTimeout(resolve, 400))
+    await createManagedTimeout(() => {}, 400)
     const analyzingStep: SearchStep = {
       id: 'step-analyzing',
       type: 'analyzing',
@@ -193,7 +212,7 @@ export default function ChatPage() {
         : m
     ))
 
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await createManagedTimeout(() => {}, 800)
 
     // Step 5: 完了
     const completedStep: SearchStep = {
@@ -208,7 +227,7 @@ export default function ChatPage() {
         : m
     ))
 
-    await new Promise(resolve => setTimeout(resolve, 600))
+    await createManagedTimeout(() => {}, 600)
 
     // 最終回答
     const answer = generateAnswer(text, relatedKnowledge)
@@ -252,46 +271,29 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-        <AnimatePresence>
-          {messages.map((message) => {
+        {messages.map((message) => {
             // Search Process Display
             if (message.role === 'system' && message.content === 'SEARCH_PROCESS' && message.searchProcess) {
               return (
-                <motion.div
+                <div
                   key={message.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
                   className="flex justify-center"
                 >
                   <div className="bg-white border-2 border-gray-300 rounded-xl p-6 max-w-2xl w-full">
                     <div className="space-y-3">
                       {message.searchProcess.map((step, index) => (
-                        <motion.div
+                        <div
                           key={step.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
                           className="flex items-center gap-3"
                         >
                           {step.type === 'searching' && (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                            >
-                              <MagnifyingGlassIcon className="w-5 h-5 text-blue-600" />
-                            </motion.div>
+                            <MagnifyingGlassIcon className="w-5 h-5 text-blue-600" />
                           )}
                           {step.type === 'checking' && (
                             <BookOpenIcon className="w-5 h-5 text-purple-600" />
                           )}
                           {step.type === 'analyzing' && (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                            >
-                              <LightBulbIcon className="w-5 h-5 text-yellow-600" />
-                            </motion.div>
+                            <LightBulbIcon className="w-5 h-5 text-yellow-600" />
                           )}
                           {step.type === 'completed' && (
                             <CheckCircleIcon className="w-5 h-5 text-green-600" />
@@ -303,20 +305,18 @@ export default function ChatPage() {
                               {step.message}
                             </p>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )
             }
 
             // Regular messages
             return (
-              <motion.div
+              <div
                 key={message.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className="max-w-2xl w-full">
@@ -348,19 +348,11 @@ export default function ChatPage() {
 
                   {/* Related Knowledge Cards */}
                   {message.relatedKnowledge && message.relatedKnowledge.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="mt-3 space-y-2"
-                    >
+                    <div className="mt-3 space-y-2">
                       <p className="text-xs text-gray-600 font-bold mb-2">📚 参照したナレッジ</p>
                       {message.relatedKnowledge.map((k, i) => (
-                        <motion.div
+                        <div
                           key={k.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.1 }}
                           className="bg-gray-50 border border-gray-200 rounded-lg p-3"
                         >
                           <div className="flex items-start justify-between mb-1">
@@ -370,15 +362,14 @@ export default function ChatPage() {
                             </span>
                           </div>
                           <p className="text-xs text-gray-600">{k.content.slice(0, 100)}...</p>
-                        </motion.div>
+                        </div>
                       ))}
-                    </motion.div>
+                    </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )
           })}
-        </AnimatePresence>
 
         <div ref={messagesEndRef} />
       </div>
@@ -389,18 +380,13 @@ export default function ChatPage() {
           <p className="text-sm text-gray-600 mb-3 font-medium">💬 よく相談される質問</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {faqQuestions.map((question, index) => (
-              <motion.button
+              <button
                 key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => handleSend(question)}
                 className="p-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-left"
               >
                 <div className="text-sm font-medium text-gray-900 line-clamp-2">{question}</div>
-              </motion.button>
+              </button>
             ))}
           </div>
         </div>
@@ -422,16 +408,14 @@ export default function ChatPage() {
             disabled={isProcessing}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100"
           />
-          <motion.button
+          <button
             onClick={() => handleSend()}
             disabled={!input.trim() || isProcessing}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold"
           >
             <span>送信</span>
             <PaperAirplaneIcon className="w-5 h-5" />
-          </motion.button>
+          </button>
         </div>
         <p className="text-xs text-gray-500 mt-2 flex items-center gap-2">
           <SparklesIcon className="w-4 h-4" />

@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { BellIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 export default function Header() {
@@ -18,14 +17,10 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
+        <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
           <BellIcon className="w-6 h-6 text-gray-700" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
-        </motion.button>
+        </button>
 
         <div className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-sm">
           U
