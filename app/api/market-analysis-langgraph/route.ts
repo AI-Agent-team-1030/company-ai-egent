@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import path from 'path'
 
+type StepStatus = 'pending' | 'running' | 'completed'
+
+interface Step {
+  step: number
+  name: string
+  status: StepStatus
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { goal, industry, targetMarket } = await req.json()
@@ -27,13 +35,13 @@ export async function POST(req: NextRequest) {
     // ストリーミングレスポンスを非同期で処理
     ;(async () => {
       try {
-        const steps = [
-          { step: 1, name: '市場規模調査', status: 'pending' as const },
-          { step: 2, name: '競合分析', status: 'pending' as const },
-          { step: 3, name: 'トレンド分析', status: 'pending' as const },
-          { step: 4, name: 'SWOT分析', status: 'pending' as const },
-          { step: 5, name: '推奨施策の提案', status: 'pending' as const },
-          { step: 6, name: '実行可能タスクへ分解', status: 'pending' as const },
+        const steps: Step[] = [
+          { step: 1, name: '市場規模調査', status: 'pending' },
+          { step: 2, name: '競合分析', status: 'pending' },
+          { step: 3, name: 'トレンド分析', status: 'pending' },
+          { step: 4, name: 'SWOT分析', status: 'pending' },
+          { step: 5, name: '推奨施策の提案', status: 'pending' },
+          { step: 6, name: '実行可能タスクへ分解', status: 'pending' },
         ]
 
         // 初期状態を送信
