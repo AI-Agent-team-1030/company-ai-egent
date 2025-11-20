@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 import Anthropic from '@anthropic-ai/sdk'
 import { getUserFromRequest } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // POST: メッセージを送信してAIからの応答を取得
 export async function POST(request: NextRequest) {
   try {

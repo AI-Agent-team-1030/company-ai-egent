@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 // GET: ナレッジ一覧取得（検索・フィルタリング対応）
 export async function GET(request: NextRequest) {
   try {

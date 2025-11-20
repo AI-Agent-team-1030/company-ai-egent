@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getUserFromRequest } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // GET: 設定を取得
 export async function GET(request: NextRequest) {
   try {

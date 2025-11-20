@@ -5,6 +5,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+export const dynamic = 'force-dynamic'
+
 interface AnalysisStep {
   step: number
   name: string

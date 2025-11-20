@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import path from 'path'
 
+export const dynamic = 'force-dynamic'
+
 type StepStatus = 'pending' | 'running' | 'completed'
 
 interface Step {
