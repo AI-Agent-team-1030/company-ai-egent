@@ -346,7 +346,7 @@ export default function SettingsPage() {
                       />
                     </button>
                   ) : (
-                    <span className="text-gray-600">{'value' in item ? item.value : ''}</span>
+                    <span className="text-gray-600">{'value' in item ? String(item.value) : ''}</span>
                   )}
                 </div>
               ))}
