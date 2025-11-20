@@ -5,6 +5,13 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+type StepStatus = 'pending' | 'running' | 'completed'
+
+interface Step {
+  name: string
+  status: StepStatus
+}
+
 interface AgentResult {
   agent: string
   result: string
@@ -28,12 +35,12 @@ export async function POST(req: NextRequest) {
     // ストリーミングレスポンスを非同期で処理
     ;(async () => {
       try {
-        const steps = [
-          { name: '統括エージェント', status: 'pending' as const },
-          { name: '市場調査エージェント', status: 'pending' as const },
-          { name: '競合調査エージェント', status: 'pending' as const },
-          { name: '戦略立案エージェント', status: 'pending' as const },
-          { name: 'レポート統合エージェント', status: 'pending' as const },
+        const steps: Step[] = [
+          { name: '統括エージェント', status: 'pending' },
+          { name: '市場調査エージェント', status: 'pending' },
+          { name: '競合調査エージェント', status: 'pending' },
+          { name: '戦略立案エージェント', status: 'pending' },
+          { name: 'レポート統合エージェント', status: 'pending' },
         ]
 
         // 初期状態を送信
