@@ -10,7 +10,10 @@ import {
   ChatBubbleLeftRightIcon,
   LightBulbIcon
 } from '@heroicons/react/24/outline'
-import { mockKnowledge } from '@/data/mockData'
+import { KnowledgeItem } from '@/types'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { apiGet, apiPost } from '@/lib/api-client'
 
 interface Message {
   id: string
@@ -18,7 +21,7 @@ interface Message {
   content: string
   timestamp: Date
   searchProcess?: SearchStep[]
-  relatedKnowledge?: typeof mockKnowledge
+  relatedKnowledge?: KnowledgeItem[]
 }
 
 interface SearchStep {
@@ -29,23 +32,42 @@ interface SearchStep {
 }
 
 export default function ChatPage() {
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
-  // 初回メッセージを設定
+  // 会話を作成
   useEffect(() => {
-    if (messages.length === 0) {
+    createNewConversation()
+  }, [])
+
+  const createNewConversation = async () => {
+    try {
+      const response = await apiPost('/api/chat/conversations', { title: '新しい会話' })
+
+      if (!response.ok) {
+        throw new Error('Failed to create conversation')
+      }
+
+      const conversation = await response.json()
+      setConversationId(conversation.id)
+
+      // 初回メッセージ
       setMessages([{
         id: '1',
         role: 'assistant',
         content: 'こんにちは！AIアシスタントです。\n\n何かお困りのことがあれば、お気軽にご相談ください。社内のナレッジベースから最適な情報を自動で探してお答えします。',
         timestamp: new Date(),
       }])
+    } catch (err) {
+      console.error('Error creating conversation:', err)
+      setError('会話の作成に失敗しました')
     }
-  }, [messages.length])
+  }
 
   // クリーンアップ: コンポーネントのアンマウント時にすべてのタイマーをクリア
   useEffect(() => {
@@ -74,75 +96,27 @@ export default function ChatPage() {
     })
   }
 
-  // ナレッジ検索ロジック
-  const searchKnowledge = (query: string) => {
-    const lowerQuery = query.toLowerCase()
+  // ドキュメント検索ロジック（APIから）
+  const searchDocuments = async (query: string): Promise<any[]> => {
+    try {
+      const response = await apiGet('/api/documents')
 
-    const scored = mockKnowledge.map(k => {
-      let score = 0
-      if (k.title.toLowerCase().includes(lowerQuery)) score += 10
-      if (k.content.toLowerCase().includes(lowerQuery)) score += 5
-      k.tags.forEach(tag => {
-        if (tag.toLowerCase().includes(lowerQuery) || lowerQuery.includes(tag.toLowerCase())) {
-          score += 3
-        }
-      })
-      if (k.category.toLowerCase().includes(lowerQuery)) score += 2
-      return { knowledge: k, score }
-    })
+      if (!response.ok) {
+        throw new Error('Failed to search documents')
+      }
 
-    return scored
-      .filter(s => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(s => s.knowledge)
-  }
-
-  // 回答生成ロジック
-  const generateAnswer = (query: string, relatedKnowledge: typeof mockKnowledge): string => {
-    if (relatedKnowledge.length === 0) {
-      return `「${query}」に関する情報がナレッジベースに見つかりませんでした。
-
-以下のような質問にお答えできます：
-• 経費精算の方法について
-• 有給休暇の申請手順
-• 会議室の予約方法
-• 勤怠管理システムの使い方
-• テレワークの申請方法
-
-別の言葉で質問してみてください。`
+      const result = await response.json()
+      // 処理済みのドキュメントのみ返す
+      return (result.data || []).filter((d: any) => d.processed).slice(0, 3)
+    } catch (err) {
+      console.error('Error searching documents:', err)
+      return []
     }
-
-    // 最も関連性の高いナレッジ（1位）は全文表示
-    const mainKnowledge = relatedKnowledge[0]
-
-    // その他のナレッジは要約のみ表示
-    const additionalKnowledge = relatedKnowledge.slice(1, 3) // 最大2件まで
-
-    let answer = `**${mainKnowledge.title}**についてお答えします。\n\n`
-    answer += `${mainKnowledge.content}\n\n`
-
-    // 追加の関連ナレッジがある場合
-    if (additionalKnowledge.length > 0) {
-      answer += `━━━━━━━━━━━━━━━━━━\n\n`
-      answer += `**関連情報**\n\n`
-      additionalKnowledge.forEach((k, i) => {
-        // コンテンツの最初の300文字を抜粋
-        const excerpt = k.content.split('\n').slice(0, 5).join('\n').slice(0, 300)
-        answer += `${i + 1}. **${k.title}**\n${excerpt}...\n\n`
-      })
-    }
-
-    answer += `━━━━━━━━━━━━━━━━━━\n\n`
-    answer += `💡 この情報は${mainKnowledge.usageCount}回参照され、${mainKnowledge.helpful}人が役に立ったと評価しています。\n\n`
-    answer += `他にご不明な点があれば、お気軽にお聞きください。`
-
-    return answer
   }
 
   const handleSend = async (messageText?: string) => {
     const text = messageText || input
-    if (!text.trim() || isProcessing) return
+    if (!text.trim() || isProcessing || !conversationId) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -154,106 +128,148 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsProcessing(true)
+    setError(null)
 
-    // Step 1: ナレッジ検索開始
-    const relatedKnowledge = searchKnowledge(text)
     const searchSteps: SearchStep[] = []
 
-    // Step 2: 検索中メッセージ
-    const searchingStep: SearchStep = {
-      id: 'step-0',
-      type: 'searching',
-      message: 'ナレッジベースを検索中...',
-    }
-    searchSteps.push(searchingStep)
-
-    const searchMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'system',
-      content: 'SEARCH_PROCESS',
-      timestamp: new Date(),
-      searchProcess: [searchingStep],
-    }
-    setMessages((prev) => [...prev, searchMessage])
-
-    await createManagedTimeout(() => {}, 800)
-
-    // Step 3: 各ナレッジを確認
-    for (let i = 0; i < relatedKnowledge.length; i++) {
-      const knowledge = relatedKnowledge[i]
-      const checkingStep: SearchStep = {
-        id: `step-${i + 1}`,
-        type: 'checking',
-        message: `「${knowledge.title}」を確認中...`,
-        knowledgeTitle: knowledge.title,
+    try {
+      // Step 1: ナレッジ検索開始
+      const searchingStep: SearchStep = {
+        id: 'step-0',
+        type: 'searching',
+        message: 'ナレッジベースを検索中...',
       }
-      searchSteps.push(checkingStep)
+      searchSteps.push(searchingStep)
 
+      const searchMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'system',
+        content: 'SEARCH_PROCESS',
+        timestamp: new Date(),
+        searchProcess: [searchingStep],
+      }
+      setMessages((prev) => [...prev, searchMessage])
+
+      // ドキュメントを検索
+      const relatedDocs = await searchDocuments(text)
+
+      await createManagedTimeout(() => {}, 500)
+
+      // Step 2: 各ドキュメントを確認
+      for (let i = 0; i < relatedDocs.length; i++) {
+        const doc = relatedDocs[i]
+        const checkingStep: SearchStep = {
+          id: `step-${i + 1}`,
+          type: 'checking',
+          message: `「${doc.original_filename}」を確認中...`,
+          knowledgeTitle: doc.original_filename,
+        }
+        searchSteps.push(checkingStep)
+
+        setMessages((prev) => prev.map(m =>
+          m.content === 'SEARCH_PROCESS'
+            ? { ...m, searchProcess: [...searchSteps] }
+            : m
+        ))
+
+        await createManagedTimeout(() => {}, 400)
+      }
+
+      // Step 3: Claude AIで分析中
+      const analyzingStep: SearchStep = {
+        id: 'step-analyzing',
+        type: 'analyzing',
+        message: 'Claude AIが情報を分析中...',
+      }
+      searchSteps.push(analyzingStep)
       setMessages((prev) => prev.map(m =>
         m.content === 'SEARCH_PROCESS'
           ? { ...m, searchProcess: [...searchSteps] }
           : m
       ))
 
-      await createManagedTimeout(() => {}, 600)
+      // Claude APIに送信
+      const response = await apiPost('/api/chat/messages', {
+        conversation_id: conversationId,
+        content: text,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send message')
+      }
+
+      const { assistantMessage } = await response.json()
+
+      // Step 4: 完了
+      const completedStep: SearchStep = {
+        id: 'step-completed',
+        type: 'completed',
+        message: `${relatedDocs.length}件のドキュメントを参照して回答を生成しました`,
+      }
+      searchSteps.push(completedStep)
+      setMessages((prev) => prev.map(m =>
+        m.content === 'SEARCH_PROCESS'
+          ? { ...m, searchProcess: [...searchSteps] }
+          : m
+      ))
+
+      await createManagedTimeout(() => {}, 300)
+
+      // AIメッセージを追加
+      const aiMessage: Message = {
+        id: assistantMessage.id,
+        role: 'assistant',
+        content: assistantMessage.content,
+        timestamp: new Date(assistantMessage.created_at),
+        relatedKnowledge: relatedDocs.length > 0 ? relatedDocs.map(d => ({
+          id: d.id,
+          title: d.original_filename,
+          content: '',
+          category: '',
+          tags: [],
+          createdAt: new Date(d.uploaded_at),
+          updatedAt: new Date(d.uploaded_at),
+          usageCount: 0,
+          helpful: 0,
+        })) : undefined,
+      }
+
+      setMessages((prev) => prev.filter(m => m.content !== 'SEARCH_PROCESS').concat([aiMessage]))
+    } catch (err: any) {
+      console.error('Error sending message:', err)
+      setError(err.message || 'メッセージの送信に失敗しました')
+
+      // エラーメッセージを表示
+      setMessages((prev) => prev.filter(m => m.content !== 'SEARCH_PROCESS'))
+    } finally {
+      setIsProcessing(false)
     }
-
-    // Step 4: 分析中
-    await createManagedTimeout(() => {}, 400)
-    const analyzingStep: SearchStep = {
-      id: 'step-analyzing',
-      type: 'analyzing',
-      message: '情報を分析中...',
-    }
-    searchSteps.push(analyzingStep)
-    setMessages((prev) => prev.map(m =>
-      m.content === 'SEARCH_PROCESS'
-        ? { ...m, searchProcess: [...searchSteps] }
-        : m
-    ))
-
-    await createManagedTimeout(() => {}, 800)
-
-    // Step 5: 完了
-    const completedStep: SearchStep = {
-      id: 'step-completed',
-      type: 'completed',
-      message: `${relatedKnowledge.length}件のナレッジを参照して回答を生成しました`,
-    }
-    searchSteps.push(completedStep)
-    setMessages((prev) => prev.map(m =>
-      m.content === 'SEARCH_PROCESS'
-        ? { ...m, searchProcess: [...searchSteps] }
-        : m
-    ))
-
-    await createManagedTimeout(() => {}, 600)
-
-    // 最終回答
-    const answer = generateAnswer(text, relatedKnowledge)
-    const aiMessage: Message = {
-      id: (Date.now() + 100).toString(),
-      role: 'assistant',
-      content: answer,
-      timestamp: new Date(),
-      relatedKnowledge: relatedKnowledge.length > 0 ? relatedKnowledge : undefined,
-    }
-
-    setMessages((prev) => prev.filter(m => m.content !== 'SEARCH_PROCESS').concat([aiMessage]))
-    setIsProcessing(false)
   }
 
   const faqQuestions = [
-    '経費精算の方法を教えて',
-    '有給休暇の申請手順は？',
-    '会議室の予約方法',
-    '勤怠管理システムの使い方',
+    '新規顧客へのアプローチ方法を教えて',
+    'SaaS業界の採用について',
+    'カスタマーサポートのテンプレート',
+    '営業のノウハウを教えて',
   ]
 
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 px-6 py-4 bg-white">
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-red-600 text-sm">
+              <strong>エラー:</strong> {error}
+              {error.includes('APIキー') && (
+                <a href="/settings" className="ml-2 underline">
+                  設定ページへ
+                </a>
+              )}
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <div className="p-2 bg-black text-white rounded-lg">
             <ChatBubbleLeftRightIcon className="w-5 h-5" />
@@ -333,7 +349,15 @@ export default function ChatPage() {
                         <span className="text-xs font-bold text-gray-900">AI アシスタント</span>
                       </div>
                     )}
-                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                    {message.role === 'assistant' ? (
+                      <div className="prose prose-sm max-w-none text-gray-900">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                    )}
                     <div
                       className={`text-xs mt-2 ${
                         message.role === 'user' ? 'text-gray-400' : 'text-gray-500'

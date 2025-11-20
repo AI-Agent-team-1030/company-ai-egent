@@ -11,14 +11,21 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@heroicons/react": "^2.1.1",
+    "@supabase/supabase-js": "^2.83.0",
+    "csv-parse": "^6.1.0",
     "date-fns": "^3.0.6",
     "framer-motion": "^10.16.16",
+    "mammoth": "^1.11.0",
     "next": "14.0.4",
+    "officeparser": "^5.2.2",
+    "pdf-parse-fork": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "recharts": "^2.10.3",
     "remark-gfm": "^4.0.1",
+    "tesseract.js": "^6.0.1",
+    "xlsx": "^0.18.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

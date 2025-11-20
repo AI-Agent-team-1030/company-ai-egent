@@ -1,51 +1,201 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BookOpenIcon,
-  MagnifyingGlassIcon,
-  StarIcon,
   PlusIcon,
-  FunnelIcon,
-  XMarkIcon,
-  TagIcon
+  TrashIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline'
-import { mockKnowledge } from '@/data/mockData'
+import { apiGet, apiRequest, apiDelete } from '@/lib/api-client'
+
+interface Document {
+  id: string
+  filename: string
+  original_filename: string
+  file_type: string
+  file_size: number
+  uploaded_at: string
+  processed: boolean
+  processed_at: string | null
+}
+
+interface ProcessingStatus {
+  [key: string]: {
+    status: 'uploading' | 'extracting' | 'completed' | 'error'
+    message: string
+    progress: number
+  }
+}
 
 export default function KnowledgePage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'recent'>('popular')
-  const [showFilters, setShowFilters] = useState(true)
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({})
 
-  // カテゴリーを抽出
-  const categories = ['all', ...Array.from(new Set(mockKnowledge.map(item => item.category)))]
+  useEffect(() => {
+    fetchDocuments()
+  }, [])
 
-  // 全タグを抽出
-  const allTags = Array.from(new Set(mockKnowledge.flatMap(item => item.tags)))
+  const fetchDocuments = async () => {
+    setLoading(true)
+    try {
+      const response = await apiGet('/api/documents')
+      if (!response.ok) throw new Error('Failed to fetch documents')
 
-  // フィルタリングとソート
-  const filteredKnowledge = mockKnowledge
-    .filter(item => {
-      const matchesSearch =
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.content.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
-      const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => item.tags.includes(tag))
-      return matchesSearch && matchesCategory && matchesTags
-    })
-    .sort((a, b) => {
-      if (sortBy === 'popular') return b.usageCount - a.usageCount
-      if (sortBy === 'rating') return (b.rating ?? 0) - (a.rating ?? 0)
-      return 0
-    })
+      const result = await response.json()
+      setDocuments(result.data || [])
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    )
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const tempId = `temp-${Date.now()}`
+    setUploading(true)
+    setError(null)
+
+    // アップロード中の状態を表示
+    setProcessingStatus((prev) => ({
+      ...prev,
+      [tempId]: {
+        status: 'uploading',
+        message: `${file.name} をアップロード中...`,
+        progress: 30,
+      },
+    }))
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiRequest('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+
+      const newDocument = await response.json()
+
+      // テキスト抽出中の状態を表示
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: {
+          status: 'extracting',
+          message: 'テキストを抽出中...',
+          progress: 60,
+        },
+      }))
+
+      setDocuments((prev) => [newDocument, ...prev])
+
+      // 処理完了を待つ（ポーリング）
+      let attempts = 0
+      const checkProcessing = setInterval(async () => {
+        attempts++
+        const checkResponse = await apiGet('/api/documents')
+        const result = await checkResponse.json()
+        const doc = result.data.find((d: Document) => d.id === newDocument.id)
+
+        if (doc?.processed || attempts > 30) {
+          clearInterval(checkProcessing)
+
+          // 完了状態を表示
+          setProcessingStatus((prev) => ({
+            ...prev,
+            [tempId]: {
+              status: 'completed',
+              message: '処理完了！',
+              progress: 100,
+            },
+          }))
+
+          // 3秒後にステータスを削除
+          setTimeout(() => {
+            setProcessingStatus((prev) => {
+              const { [tempId]: _, ...rest } = prev
+              return rest
+            })
+          }, 3000)
+
+          // ドキュメントリストを更新
+          fetchDocuments()
+        }
+      }, 2000)
+
+      // ファイル入力をリセット
+      e.target.value = ''
+    } catch (err: any) {
+      setError(err.message)
+
+      // エラー状態を表示
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: {
+          status: 'error',
+          message: `エラー: ${err.message}`,
+          progress: 0,
+        },
+      }))
+
+      // 5秒後にエラー表示を削除
+      setTimeout(() => {
+        setProcessingStatus((prev) => {
+          const { [tempId]: _, ...rest } = prev
+          return rest
+        })
+      }, 5000)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('このドキュメントを削除しますか？')) return
+
+    try {
+      const response = await apiDelete(`/api/documents/${id}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document')
+      }
+
+      setDocuments((prev) => prev.filter((d) => d.id !== id))
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const getFileTypeIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) return '📄'
+    if (fileType.includes('word')) return '📝'
+    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return '📊'
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return '📽️'
+    if (fileType.includes('csv')) return '📈'
+    if (fileType.includes('image')) return '🖼️'
+    if (fileType.includes('text')) return '📃'
+    return '📁'
   }
 
   return (
@@ -54,221 +204,183 @@ export default function KnowledgePage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">ナレッジベース</h1>
-          <p className="text-gray-600">組織の知識を蓄積・共有</p>
+          <p className="text-gray-600">ドキュメントをアップロードして、AIが参照できるようにします</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">
-          <PlusIcon className="w-5 h-5" />
-          新規作成
-        </button>
+        <label className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer">
+          <CloudArrowUpIcon className="w-5 h-5" />
+          {uploading ? 'アップロード中...' : 'ドキュメント追加'}
+          <input
+            type="file"
+            className="hidden"
+            accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.gif,.webp"
+            onChange={handleFileUpload}
+            disabled={uploading}
+          />
+        </label>
       </div>
 
-      {/* Search & Controls */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-        <div className="flex gap-4 mb-4">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="ナレッジを検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-              showFilters ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <FunnelIcon className="w-5 h-5" />
-            フィルター
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+      {/* Processing Status */}
+      {Object.keys(processingStatus).length > 0 && (
+        <div className="mb-6 space-y-3">
+          {Object.entries(processingStatus).map(([id, status]) => (
+            <div
+              key={id}
+              className={`rounded-lg p-4 ${
+                status.status === 'error'
+                  ? 'bg-red-50 border border-red-200'
+                  : status.status === 'completed'
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-blue-50 border border-blue-200'
+              }`}
             >
-              <div className="pt-4 border-t border-gray-200 space-y-4">
-                {/* Category Filter */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">カテゴリー</label>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(category => (
-                      <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          selectedCategory === category
-                            ? 'bg-gray-900 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {category === 'all' ? 'すべて' : category}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tag Filter */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">タグ</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allTags.map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-                          selectedTags.includes(tag)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        <TagIcon className="w-3.5 h-3.5" />
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sort */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">並び替え</label>
-                  <div className="flex gap-2">
-                    {[
-                      { value: 'popular', label: '人気順' },
-                      { value: 'rating', label: '評価順' },
-                      { value: 'recent', label: '新着順' },
-                    ].map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => setSortBy(option.value as any)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          sortBy === option.value
-                            ? 'bg-gray-900 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Active Filters */}
-                {(selectedCategory !== 'all' || selectedTags.length > 0) && (
-                  <div className="flex items-center gap-2 pt-2">
-                    <span className="text-sm text-gray-600">選択中:</span>
-                    {selectedCategory !== 'all' && (
-                      <span className="px-3 py-1 bg-gray-900 text-white rounded-lg text-sm flex items-center gap-2">
-                        {selectedCategory}
-                        <button onClick={() => setSelectedCategory('all')}>
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
-                      </span>
-                    )}
-                    {selectedTags.map(tag => (
-                      <span key={tag} className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2">
-                        {tag}
-                        <button onClick={() => toggleTag(tag)}>
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              <div className="flex items-center justify-between mb-2">
+                <p
+                  className={`text-sm font-medium ${
+                    status.status === 'error'
+                      ? 'text-red-800'
+                      : status.status === 'completed'
+                      ? 'text-green-800'
+                      : 'text-blue-800'
+                  }`}
+                >
+                  {status.message}
+                </p>
+                <span
+                  className={`text-xs font-bold ${
+                    status.status === 'error'
+                      ? 'text-red-600'
+                      : status.status === 'completed'
+                      ? 'text-green-600'
+                      : 'text-blue-600'
+                  }`}
+                >
+                  {status.progress}%
+                </span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    status.status === 'error'
+                      ? 'bg-red-600'
+                      : status.status === 'completed'
+                      ? 'bg-green-600'
+                      : 'bg-blue-600'
+                  }`}
+                  style={{ width: `${status.progress}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 text-sm">
+            <strong>エラー:</strong> {error}
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">総ナレッジ数</p>
-          <p className="text-2xl font-bold text-gray-900">{mockKnowledge.length}</p>
+          <p className="text-sm text-gray-600 mb-1">総ドキュメント数</p>
+          <p className="text-2xl font-bold text-gray-900">{loading ? '-' : documents.length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">カテゴリー数</p>
-          <p className="text-2xl font-bold text-gray-900">{categories.length - 1}</p>
+          <p className="text-sm text-gray-600 mb-1">処理済み</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {loading ? '-' : documents.filter((d) => d.processed).length}
+          </p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">タグ数</p>
-          <p className="text-2xl font-bold text-gray-900">{allTags.length}</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">表示中</p>
-          <p className="text-2xl font-bold text-gray-900">{filteredKnowledge.length}</p>
+          <p className="text-sm text-gray-600 mb-1">処理中</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {loading ? '-' : documents.filter((d) => !d.processed).length}
+          </p>
         </div>
       </div>
 
-      {/* Knowledge Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredKnowledge.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ delay: index * 0.03 }}
-            whileHover={{ y: -4, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-            className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm transition-all cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <span className="px-3 py-1 bg-gray-100 text-gray-900 rounded-lg text-sm font-medium">
-                {item.category}
-              </span>
-              <div className="flex items-center gap-1">
-                <StarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-sm font-bold text-gray-900">{item.rating}</span>
-              </div>
-            </div>
-
-            <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2">{item.title}</h3>
-            <p className="text-sm text-gray-600 mb-4 line-clamp-3">{item.content}</p>
-
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {item.tags.map((tag, i) => (
-                <span
-                  key={i}
-                  className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-2 text-gray-600">
-                <BookOpenIcon className="w-4 h-4" />
-                <span className="text-xs">{item.usageCount}回使用</span>
-              </div>
-              <button className="text-xs font-medium text-gray-900 hover:text-gray-600 transition-colors">
-                詳細を見る →
-              </button>
-            </div>
-          </motion.div>
-        ))}
+      {/* Help Text */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-blue-800 text-sm">
+          <strong>対応形式:</strong> PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), CSV, テキスト (.txt), Markdown (.md), 画像 (.png, .jpg, .gif)
+          <br />
+          <strong>最大サイズ:</strong> 50MB
+          <br />
+          <strong>使い方:</strong> ドキュメントをアップロードすると、自動的にテキストが抽出されます（画像はOCR処理）。チャットで質問すると、AIが関連するドキュメントを参照して回答します。
+        </p>
       </div>
 
-      {/* Empty State */}
-      {filteredKnowledge.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-16"
-        >
-          <BookOpenIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">ナレッジが見つかりません</h3>
-          <p className="text-gray-600">検索条件を変更してみてください</p>
-        </motion.div>
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-16">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <p className="text-gray-600 mt-4">読み込み中...</p>
+        </div>
+      )}
+
+      {/* Document List */}
+      {!loading && (
+        <div className="space-y-4">
+          {documents.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16 bg-white rounded-lg border border-gray-200"
+            >
+              <BookOpenIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">ドキュメントがありません</h3>
+              <p className="text-gray-600 mb-4">最初のドキュメントをアップロードしてください</p>
+            </motion.div>
+          ) : (
+            documents.map((doc, index) => (
+              <motion.div
+                key={doc.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="text-4xl">{getFileTypeIcon(doc.file_type)}</div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 text-lg mb-1">
+                        {doc.original_filename}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span>{formatFileSize(doc.file_size)}</span>
+                        <span>•</span>
+                        <span>{new Date(doc.uploaded_at).toLocaleDateString('ja-JP')}</span>
+                        <span>•</span>
+                        {doc.processed ? (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            処理済み
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-yellow-600">
+                            <ClockIcon className="w-4 h-4" />
+                            処理中...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(doc.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
       )}
     </div>
   )
