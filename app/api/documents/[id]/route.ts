@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { getUserFromRequest } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,18 +10,31 @@ export async function GET(
 ) {
   try {
     // ユーザー認証チェック
-    const { user, error: authError } = await getUserFromRequest(request)
-
-    if (authError || !user) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const token = authHeader.replace('Bearer ', '')
+
+    // ユーザーのトークンを使って認証済みクライアントを作成
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
 
     // ドキュメント情報を取得
     const { data: document, error: fetchError } = await supabase
       .from('uploaded_documents')
       .select('*')
       .eq('id', params.id)
-      .eq('user_id', user.id)
       .single()
 
     if (fetchError) {
@@ -177,18 +189,31 @@ export async function DELETE(
 ) {
   try {
     // ユーザー認証チェック
-    const { user, error: authError } = await getUserFromRequest(request)
-
-    if (authError || !user) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // ドキュメント情報を取得（user_idもチェック）
+    const token = authHeader.replace('Bearer ', '')
+
+    // ユーザーのトークンを使って認証済みクライアントを作成
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
+
+    // ドキュメント情報を取得
     const { data: document, error: fetchError } = await supabase
       .from('uploaded_documents')
       .select('filename')
       .eq('id', params.id)
-      .eq('user_id', user.id)
       .single()
 
     if (fetchError) {
