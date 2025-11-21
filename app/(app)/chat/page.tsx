@@ -278,10 +278,6 @@ export default function ChatPage() {
             <h1 className="text-xl font-bold text-gray-900">AIアシスタント</h1>
             <p className="text-sm text-gray-600">お悩み相談・ナレッジ検索</p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-black text-white rounded-full text-sm">
-            <div className="w-2 h-2 bg-green-400 rounded-full" />
-            <span>オンライン</span>
-          </div>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const folderId = formData.get('folder_id') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
           storage_path: uploadData.path,
           processed: false,
           user_id: user.id,
+          folder_id: folderId || null,
         },
       ])
       .select()
