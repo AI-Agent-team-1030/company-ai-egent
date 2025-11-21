@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
-import { getUserFromRequest } from '@/lib/supabase-server'
+import { decrypt } from '@/lib/encryption'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +9,29 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     // ユーザー認証チェック
-    const { user, error: authError } = await getUserFromRequest(request)
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '')
+
+    // ユーザーのトークンを使って認証済みクライアントを作成
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
+
+    // ユーザー情報を取得
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -51,14 +71,22 @@ export async function POST(request: NextRequest) {
       .select('value')
       .eq('key', 'anthropic_api_key')
       .eq('user_id', user.id)
-      .single()
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    if (apiKeyError || !apiKeySetting) {
+    if (apiKeyError || !apiKeySetting || !apiKeySetting.value) {
+      console.error('[Chat API] API key not found:', apiKeyError)
       return NextResponse.json(
         { error: 'Claude APIキーが設定されていません。設定ページから登録してください。' },
         { status: 400 }
       )
     }
+
+    // APIキーを復号化
+    const apiKey = decrypt(apiKeySetting.value)
+    console.log('[Chat API] API key retrieved and decrypted')
 
     // 会話履歴を取得
     const { data: messages, error: historyError } = await supabase
@@ -75,45 +103,43 @@ export async function POST(request: NextRequest) {
     // ドキュメントを検索してコンテキストを構築
     let knowledgeContext = ''
 
-    // ユーザーのドキュメントのみを検索
+    // ユーザーのドキュメントを取得
     const { data: userDocuments } = await supabase
       .from('uploaded_documents')
-      .select('id')
-      .eq('user_id', user.id)
+      .select('id, original_filename')
       .eq('processed', true)
 
-    const userDocumentIds = userDocuments?.map(doc => doc.id) || []
+    if (userDocuments && userDocuments.length > 0) {
+      const userDocumentIds = userDocuments.map(doc => doc.id)
 
-    // ユーザーのメッセージから関連ドキュメントを検索
-    const { data: relevantChunks, error: searchError } = await supabase
-      .from('document_chunks')
-      .select('content, document_id, uploaded_documents(original_filename)')
-      .in('document_id', userDocumentIds)
-      .textSearch('content', content.trim(), {
-        type: 'websearch',
-        config: 'english'
-      })
-      .limit(5)
+      // すべてのチャンクを取得（シンプルな実装）
+      const { data: relevantChunks } = await supabase
+        .from('document_chunks')
+        .select('content, document_id')
+        .in('document_id', userDocumentIds)
+        .limit(10)
 
-    if (!searchError && relevantChunks && relevantChunks.length > 0) {
-      knowledgeContext = '\n\n【参照ドキュメント】\n以下のドキュメントから関連情報を見つけました：\n\n'
+      if (relevantChunks && relevantChunks.length > 0) {
+        knowledgeContext = '\n\n【参照ドキュメント】\n以下のドキュメントから関連情報を見つけました：\n\n'
 
-      const seenDocs = new Set<string>()
-      relevantChunks.forEach((chunk: any) => {
-        const docName = chunk.uploaded_documents?.original_filename || 'Unknown'
-        if (!seenDocs.has(chunk.document_id)) {
-          seenDocs.add(chunk.document_id)
-          knowledgeContext += `■ ${docName}\n`
-        }
-        knowledgeContext += `${chunk.content}\n\n`
-      })
+        const seenDocs = new Set<string>()
+        relevantChunks.forEach((chunk: any) => {
+          const doc = userDocuments.find(d => d.id === chunk.document_id)
+          const docName = doc?.original_filename || 'Unknown'
+          if (!seenDocs.has(chunk.document_id)) {
+            seenDocs.add(chunk.document_id)
+            knowledgeContext += `■ ${docName}\n`
+          }
+          knowledgeContext += `${chunk.content}\n\n`
+        })
 
-      knowledgeContext += '\n上記のドキュメント内容を参考に、質問に回答してください。'
+        knowledgeContext += '\n上記のドキュメント内容を参考に、質問に回答してください。'
+      }
     }
 
     // Claude APIを呼び出し
     const anthropic = new Anthropic({
-      apiKey: apiKeySetting.value,
+      apiKey: apiKey,
     })
 
     const response = await anthropic.messages.create({

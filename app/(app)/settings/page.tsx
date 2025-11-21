@@ -39,21 +39,27 @@ export default function SettingsPage() {
 
   const fetchUserName = async () => {
     try {
+      console.log('[Settings Page] Fetching user name...')
       const response = await apiGet('/api/settings?key=user_name')
       if (response.ok) {
         const data = await response.json()
+        console.log('[Settings Page] User name fetched:', data)
         setUserName(data.value || '')
+      } else {
+        console.error('[Settings Page] Failed to fetch user name:', response.status)
       }
     } catch (error) {
-      console.error('Error fetching user name:', error)
+      console.error('[Settings Page] Error fetching user name:', error)
     }
   }
 
   const fetchApiKey = async () => {
     try {
+      console.log('[Settings Page] Fetching API key...')
       const response = await apiGet('/api/settings?key=anthropic_api_key')
       if (response.ok) {
         const data = await response.json()
+        console.log('[Settings Page] API key fetched:', data.value ? 'HAS VALUE' : 'NO VALUE')
         // セキュリティのため、最初の8文字と最後の4文字のみ表示
         const maskedKey = data.value
           ? `${data.value.substring(0, 8)}${'*'.repeat(40)}${data.value.substring(data.value.length - 4)}`
@@ -61,10 +67,11 @@ export default function SettingsPage() {
         setApiKey(maskedKey)
         setApiKeyStatus(data.value ? 'saved' : 'not_set')
       } else {
+        console.error('[Settings Page] Failed to fetch API key:', response.status)
         setApiKeyStatus('not_set')
       }
     } catch (error) {
-      console.error('Error fetching API key:', error)
+      console.error('[Settings Page] Error fetching API key:', error)
       setApiKeyStatus('error')
     }
   }
@@ -83,10 +90,15 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
+        const data = await response.json()
+        console.log('Name saved successfully:', data)
         setShowNameSuccess(true)
         setTimeout(() => setShowNameSuccess(false), 3000)
+        // 保存後に再取得して確実に反映
+        await fetchUserName()
       } else {
         const error = await response.json()
+        console.error('Failed to save name:', error)
         alert(`保存に失敗しました: ${error.error}`)
       }
     } catch (error) {
@@ -111,13 +123,16 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
+        const data = await response.json()
+        console.log('API key saved successfully:', data)
         setApiKeyStatus('saved')
         setShowSuccess(true)
         setTimeout(() => setShowSuccess(false), 3000)
         // マスク表示に切り替え
-        fetchApiKey()
+        await fetchApiKey()
       } else {
         const error = await response.json()
+        console.error('Failed to save API key:', error)
         alert(`保存に失敗しました: ${error.error}`)
       }
     } catch (error) {
