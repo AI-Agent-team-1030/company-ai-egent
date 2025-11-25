@@ -334,12 +334,12 @@ export default function KnowledgePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">ナレッジベース</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-1 md:mb-2">ナレッジベース</h1>
+          <p className="text-sm md:text-base text-gray-600">
             ドキュメントをアップロードして、AIが参照できるようにします
             {selectedFolderId && (
               <span className="ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded">
@@ -348,7 +348,7 @@ export default function KnowledgePage() {
             )}
           </p>
         </div>
-        <label className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer">
+        <label className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer text-sm md:text-base w-full sm:w-auto">
           <CloudArrowUpIcon className="w-5 h-5" />
           {uploading ? 'アップロード中...' : 'ドキュメント追加'}
           <input
@@ -500,33 +500,33 @@ export default function KnowledgePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">総ドキュメント数</p>
-          <p className="text-2xl font-bold text-gray-900">{loading ? '-' : documents.length}</p>
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
+        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
+          <p className="text-xs md:text-sm text-gray-600 mb-1">総ドキュメント数</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900">{loading ? '-' : documents.length}</p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">処理済み</p>
-          <p className="text-2xl font-bold text-gray-900">
+        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
+          <p className="text-xs md:text-sm text-gray-600 mb-1">処理済み</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900">
             {loading ? '-' : documents.filter((d) => d.processed).length}
           </p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <p className="text-sm text-gray-600 mb-1">処理中</p>
-          <p className="text-2xl font-bold text-gray-900">
+        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
+          <p className="text-xs md:text-sm text-gray-600 mb-1">処理中</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900">
             {loading ? '-' : documents.filter((d) => !d.processed).length}
           </p>
         </div>
       </div>
 
       {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <p className="text-blue-800 text-sm">
-          <strong>対応形式:</strong> PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), CSV, テキスト (.txt), Markdown (.md), 画像 (.png, .jpg, .gif)
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-6">
+        <p className="text-blue-800 text-xs md:text-sm">
+          <strong>対応形式:</strong> PDF, Word, Excel, PowerPoint, CSV, テキスト, Markdown, 画像
           <br />
           <strong>最大サイズ:</strong> 50MB
-          <br />
-          <strong>使い方:</strong> ドキュメントをアップロードすると、自動的にテキストが抽出されます（画像はOCR処理）。チャットで質問すると、AIが関連するドキュメントを参照して回答します。
+          <br className="hidden md:block" />
+          <span className="hidden md:inline"><strong>使い方:</strong> ドキュメントをアップロードすると、自動的にテキストが抽出されます（画像はOCR処理）。チャットで質問すると、AIが関連するドキュメントを参照して回答します。</span>
         </p>
       </div>
 
@@ -568,28 +568,28 @@ export default function KnowledgePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+                className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="text-4xl">{getFileTypeIcon(doc.file_type)}</div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-lg mb-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
+                    <div className="text-2xl md:text-4xl flex-shrink-0">{getFileTypeIcon(doc.file_type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm md:text-lg mb-1 truncate">
                         {doc.original_filename}
                       </h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-600 mb-2 md:mb-3">
                         <span>{formatFileSize(doc.file_size)}</span>
-                        <span>•</span>
-                        <span>{new Date(doc.uploaded_at).toLocaleDateString('ja-JP')}</span>
-                        <span>•</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="hidden sm:inline">{new Date(doc.uploaded_at).toLocaleDateString('ja-JP')}</span>
+                        <span className="hidden sm:inline">•</span>
                         {doc.processed ? (
                           <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircleIcon className="w-4 h-4" />
+                            <CheckCircleIcon className="w-3 h-3 md:w-4 md:h-4" />
                             処理済み
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 text-yellow-600">
-                            <ClockIcon className="w-4 h-4" />
+                            <ClockIcon className="w-3 h-3 md:w-4 md:h-4" />
                             処理中...
                           </span>
                         )}
@@ -597,9 +597,9 @@ export default function KnowledgePage() {
                       {doc.processed && (
                         <button
                           onClick={() => handleViewDocument(doc)}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                          className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-xs md:text-sm font-medium"
                         >
-                          <EyeIcon className="w-4 h-4" />
+                          <EyeIcon className="w-3 h-3 md:w-4 md:h-4" />
                           内容を表示
                         </button>
                       )}
@@ -607,9 +607,9 @@ export default function KnowledgePage() {
                   </div>
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                   >
-                    <TrashIcon className="w-5 h-5" />
+                    <TrashIcon className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
                 </div>
               </motion.div>

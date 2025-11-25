@@ -187,11 +187,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">設定</h1>
-        <p className="text-gray-600">アカウントとAPIキーの設定</p>
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-1 md:mb-2">設定</h1>
+        <p className="text-sm md:text-base text-gray-600">アカウントとAPIキーの設定</p>
       </div>
 
       {/* Settings Sections */}

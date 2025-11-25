@@ -741,10 +741,10 @@ function ChatContent() {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4 bg-white">
+      <div className="border-b border-gray-200 px-3 md:px-6 py-3 md:py-4 bg-white">
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-600 text-sm">
+          <div className="mb-3 md:mb-4 bg-red-50 border border-red-200 rounded-lg p-2 md:p-3">
+            <p className="text-red-600 text-xs md:text-sm">
               <strong>エラー:</strong> {error}
               {error.includes('APIキー') && (
                 <a href="/settings" className="ml-2 underline">
@@ -754,32 +754,33 @@ function ChatContent() {
             </p>
           </div>
         )}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-black text-white rounded-lg">
-            <ChatBubbleLeftRightIcon className="w-5 h-5" />
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="p-1.5 md:p-2 bg-black text-white rounded-lg">
+            <ChatBubbleLeftRightIcon className="w-4 h-4 md:w-5 md:h-5" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">AIアシスタント</h1>
-            <p className="text-sm text-gray-600">お悩み相談・ナレッジ検索</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base md:text-xl font-bold text-gray-900 truncate">AIアシスタント</h1>
+            <p className="text-xs md:text-sm text-gray-600 hidden sm:block">お悩み相談・ナレッジ検索</p>
           </div>
 
           {/* Model Selector */}
           <div className="relative" ref={modelDropdownRef}>
             <button
               onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               <SparklesIcon className="w-4 h-4 text-gray-700" />
-              <div className="text-left">
+              <div className="text-left hidden sm:block">
                 <div className="text-sm font-bold text-gray-900">{selectedModel.name}</div>
                 <div className="text-xs text-gray-600">{selectedModel.description}</div>
               </div>
+              <span className="text-xs font-bold text-gray-900 sm:hidden">{selectedModel.name}</span>
               <ChevronDownIcon className={`w-4 h-4 text-gray-600 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
             {isModelDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-64 md:w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-[70vh] overflow-y-auto">
                 <div className="p-2">
                   <div className="text-xs font-bold text-gray-500 px-3 py-2">Anthropic</div>
                   {AI_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
@@ -839,17 +840,17 @@ function ChatContent() {
           {/* Knowledge Button */}
           <button
             onClick={() => router.push('/knowledge')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+            className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
             title="ナレッジベースへ"
           >
-            <BookOpenIcon className="w-5 h-5 text-gray-700" />
-            <span className="text-sm font-medium text-gray-700">ナレッジ</span>
+            <BookOpenIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-700" />
+            <span className="text-xs md:text-sm font-medium text-gray-700 hidden sm:inline">ナレッジ</span>
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4 bg-gray-50">
         {messages.map((message) => {
             // Search Process Display
             if (message.role === 'system' && message.content === 'SEARCH_PROCESS' && message.searchProcess) {
@@ -858,7 +859,7 @@ function ChatContent() {
                   key={message.id}
                   className="flex justify-center"
                 >
-                  <div className="bg-white border-2 border-gray-300 rounded-xl p-6 max-w-2xl w-full">
+                  <div className="bg-white border-2 border-gray-300 rounded-xl p-4 md:p-6 max-w-2xl w-full">
                     <div className="space-y-3">
                       {message.searchProcess.map((step, index) => (
                         <div
@@ -904,7 +905,7 @@ function ChatContent() {
                       message.role === 'user'
                         ? 'bg-black text-white ml-auto relative'
                         : 'bg-white border border-gray-300'
-                    } rounded-xl px-6 py-4 shadow-sm`}
+                    } rounded-xl px-4 md:px-6 py-3 md:py-4 shadow-sm`}
                   >
                     {message.role === 'assistant' && (
                       <div className="flex items-center gap-2 mb-2">
@@ -1061,8 +1062,8 @@ function ChatContent() {
       })()}
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-6 bg-white">
-        <div className="flex gap-3">
+      <div className="border-t border-gray-200 p-3 md:p-6 bg-white">
+        <div className="flex gap-2 md:gap-3">
           <input
             type="text"
             value={input}
@@ -1072,47 +1073,48 @@ function ChatContent() {
                 handleSend()
               }
             }}
-            placeholder="お困りのことを相談してください..."
+            placeholder="相談内容を入力..."
             disabled={isProcessing}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100"
+            className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 text-sm md:text-base"
           />
           {/* タイピング中は停止ボタンを表示 */}
           {isTyping ? (
             <button
               onClick={handleStopTyping}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-semibold"
+              className="px-3 md:px-6 py-2.5 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1 md:gap-2 font-semibold text-sm md:text-base"
             >
-              <span>停止</span>
+              <span className="hidden sm:inline">停止</span>
               <div className="w-4 h-4 border-2 border-white"></div>
             </button>
           ) : (
             <button
               onClick={() => handleSend()}
               disabled={!input.trim() || isProcessing}
-              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold"
+              className="px-3 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 md:gap-2 font-semibold text-sm md:text-base"
             >
-              <span>送信</span>
+              <span className="hidden sm:inline">送信</span>
               <PaperAirplaneIcon className="w-5 h-5" />
             </button>
           )}
         </div>
-        <div className="flex items-center justify-between mt-3">
-          <p className="text-xs text-gray-500 flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4" />
-            {isKnowledgeSearchEnabled ? 'AIが自動で最適なナレッジを探して回答します' : 'AIが直接回答します（ナレッジ検索なし）'}
+        <div className="flex items-center justify-between mt-2 md:mt-3">
+          <p className="text-xs text-gray-500 flex items-center gap-1 md:gap-2">
+            <SparklesIcon className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">{isKnowledgeSearchEnabled ? 'AIが自動で最適なナレッジを探して回答します' : 'AIが直接回答します（ナレッジ検索なし）'}</span>
+            <span className="sm:hidden">{isKnowledgeSearchEnabled ? 'ナレッジ検索ON' : 'ナレッジ検索OFF'}</span>
           </p>
           {/* ナレッジ検索トグルボタン */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600 font-medium">ナレッジ検索</span>
+          <div className="flex items-center gap-1 md:gap-2">
+            <span className="text-xs text-gray-600 font-medium hidden sm:inline">ナレッジ検索</span>
             <button
               onClick={() => setIsKnowledgeSearchEnabled(!isKnowledgeSearchEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-5 md:h-6 w-9 md:w-11 items-center rounded-full transition-colors ${
                 isKnowledgeSearchEnabled ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  isKnowledgeSearchEnabled ? 'translate-x-6' : 'translate-x-1'
+                className={`inline-block h-3.5 md:h-4 w-3.5 md:w-4 transform rounded-full bg-white transition-transform ${
+                  isKnowledgeSearchEnabled ? 'translate-x-4 md:translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>

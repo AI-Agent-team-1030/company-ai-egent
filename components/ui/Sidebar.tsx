@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiGet, apiDelete } from '@/lib/api-client'
+import { useSidebarStore } from '@/stores/sidebarStore'
 import {
   ChatBubbleLeftRightIcon,
   BookOpenIcon,
@@ -47,6 +48,7 @@ export default function Sidebar() {
   const [sidebarWidth, setSidebarWidth] = useState(256)
   const [isResizing, setIsResizing] = useState(false)
   const { user, signOut } = useAuth()
+  const { isMobileOpen, closeMobileSidebar } = useSidebarStore()
 
   useEffect(() => {
     if (user) {
@@ -245,36 +247,158 @@ export default function Sidebar() {
     return 'U'
   }
 
-  return (
-    <div
-      style={{ width: isCollapsed ? 80 : sidebarWidth }}
-      className="h-full bg-white border-r border-gray-200 flex flex-col relative transition-all duration-300"
-    >
-      {/* Resize Handle */}
-      {!isCollapsed && (
-        <div
-          onMouseDown={() => setIsResizing(true)}
-          className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors group"
-        >
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-1 h-20 bg-gray-300 group-hover:bg-blue-500 transition-colors" />
-        </div>
-      )}
-      {/* Toggle Button */}
-      <motion.button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="absolute -right-3 top-8 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors z-50 shadow-sm"
-      >
-        {isCollapsed ? (
-          <ChevronRightIcon className="w-4 h-4 text-gray-600" />
-        ) : (
-          <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
-        )}
-      </motion.button>
+  // モバイル用の幅（固定）
+  const mobileWidth = 280
 
-      {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+  return (
+    <>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeMobileSidebar}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`
+          md:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-white border-r border-gray-200
+          flex flex-col transition-transform duration-300 ease-in-out
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Mobile Close Button */}
+        <button
+          onClick={closeMobileSidebar}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 z-50"
+        >
+          <XMarkIcon className="w-6 h-6 text-gray-600" />
+        </button>
+
+        {/* Mobile Logo */}
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-xl font-bold text-gray-900">{companyName}</h1>
+          <p className="text-xs text-gray-600 mt-1">Enterprise System</p>
+        </div>
+
+        {/* Mobile Chat History */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 pb-2">
+            <button
+              onClick={() => {
+                router.push('/chat')
+                closeMobileSidebar()
+              }}
+              className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+            >
+              <ChatBubbleLeftRightIcon className="w-5 h-5" />
+              新しいチャット
+            </button>
+          </div>
+
+          <nav className="flex-1 p-4 pt-2 overflow-y-auto space-y-1">
+            {conversations.length > 0 ? (
+              conversations.map((conv) => {
+                const isActive = pathname.includes(conv.id)
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => {
+                      router.push(`/chat?id=${conv.id}`)
+                      closeMobileSidebar()
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? 'bg-gray-200 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <p className="text-sm font-medium truncate">{conv.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(conv.updated_at).toLocaleDateString('ja-JP')}
+                    </p>
+                  </button>
+                )
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <ChatBubbleLeftRightIcon className="w-10 h-10 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">履歴がありません</p>
+              </div>
+            )}
+          </nav>
+        </div>
+
+        {/* Mobile User Footer */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+              {getUserInitial()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">{userName || 'ユーザー'}</p>
+              <p className="text-xs text-gray-600 truncate">{user?.email || 'ゲスト'}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                router.push('/settings')
+                closeMobileSidebar()
+              }}
+              className="flex-1 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+              設定
+            </button>
+            <button
+              onClick={() => {
+                closeMobileSidebar()
+                signOut()
+              }}
+              className="flex-1 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowRightOnRectangleIcon className="w-4 h-4" />
+              ログアウト
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div
+        style={{ width: isCollapsed ? 80 : sidebarWidth }}
+        className="hidden md:flex h-full bg-white border-r border-gray-200 flex-col relative transition-all duration-300"
+      >
+        {/* Resize Handle - PC only */}
+        {!isCollapsed && (
+          <div
+            onMouseDown={() => setIsResizing(true)}
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors group"
+          >
+            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-1 h-20 bg-gray-300 group-hover:bg-blue-500 transition-colors" />
+          </div>
+        )}
+        {/* Toggle Button - PC only */}
+        <motion.button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="absolute -right-3 top-8 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors z-50 shadow-sm"
+        >
+          {isCollapsed ? (
+            <ChevronRightIcon className="w-4 h-4 text-gray-600" />
+          ) : (
+            <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
+          )}
+        </motion.button>
+
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-200">
         <AnimatePresence mode="wait">
           {!isCollapsed ? (
             <motion.div
@@ -309,7 +433,10 @@ export default function Sidebar() {
         {!isCollapsed && (
           <div className="p-4 pb-2 space-y-2">
             <button
-              onClick={() => router.push('/chat')}
+              onClick={() => {
+                router.push('/chat')
+                closeMobileSidebar()
+              }}
               className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm flex items-center justify-center gap-2"
             >
               <ChatBubbleLeftRightIcon className="w-5 h-5" />
@@ -402,6 +529,7 @@ export default function Sidebar() {
                             toggleSelection(conv.id)
                           } else {
                             router.push(`/chat?id=${conv.id}`)
+                            closeMobileSidebar()
                           }
                         }}
                         className="flex-1 text-left min-w-0"
@@ -486,6 +614,7 @@ export default function Sidebar() {
                       onClick={() => {
                         setShowLogoutMenu(false)
                         router.push('/settings')
+                        closeMobileSidebar()
                       }}
                       className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors border-b border-gray-200"
                     >
@@ -495,6 +624,7 @@ export default function Sidebar() {
                     <button
                       onClick={() => {
                         setShowLogoutMenu(false)
+                        closeMobileSidebar()
                         signOut()
                       }}
                       className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
@@ -541,6 +671,7 @@ export default function Sidebar() {
                       onClick={() => {
                         setShowLogoutMenu(false)
                         router.push('/settings')
+                        closeMobileSidebar()
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors border-b border-gray-200"
                     >
@@ -550,6 +681,7 @@ export default function Sidebar() {
                     <button
                       onClick={() => {
                         setShowLogoutMenu(false)
+                        closeMobileSidebar()
                         signOut()
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
@@ -563,6 +695,7 @@ export default function Sidebar() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -675,6 +808,6 @@ export default function Sidebar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }
