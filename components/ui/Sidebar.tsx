@@ -26,11 +26,13 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutMenu, setShowLogoutMenu] = useState(false)
   const [userName, setUserName] = useState<string>('')
+  const [companyName, setCompanyName] = useState<string>('法人AI')
   const { user, signOut } = useAuth()
 
   useEffect(() => {
     if (user) {
       fetchUserName()
+      fetchCompanyName()
     }
   }, [user])
 
@@ -43,6 +45,19 @@ export default function Sidebar() {
       }
     } catch (error) {
       console.error('Failed to fetch user name:', error)
+    }
+  }
+
+  const fetchCompanyName = async () => {
+    try {
+      // Supabaseから会社名を取得
+      const response = await apiGet('/api/company')
+      if (response.ok) {
+        const data = await response.json()
+        setCompanyName(data.name || '法人AI')
+      }
+    } catch (error) {
+      console.error('Failed to fetch company name:', error)
     }
   }
 
@@ -87,7 +102,7 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <h1 className="text-2xl font-bold text-gray-900">法人AI</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{companyName}</h1>
               <p className="text-xs text-gray-600 mt-1">Enterprise System</p>
             </motion.div>
           ) : (

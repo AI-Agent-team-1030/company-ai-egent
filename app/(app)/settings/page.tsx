@@ -39,6 +39,7 @@ const AI_PROVIDERS = [
 export default function SettingsPage() {
   const { user, loading } = useAuth()
   const [userName, setUserName] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [selectedProvider, setSelectedProvider] = useState<typeof AI_PROVIDERS[0] | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
@@ -47,27 +48,37 @@ export default function SettingsPage() {
   const [showNameSuccess, setShowNameSuccess] = useState(false)
   const [showKeySuccess, setShowKeySuccess] = useState(false)
 
-  // ユーザー名とAPIキーを取得
+  // ユーザー名、会社名、APIキーを取得
   useEffect(() => {
     if (!loading && user) {
       fetchUserName()
+      fetchCompanyName()
       fetchAllApiKeys()
     }
   }, [user, loading])
 
   const fetchUserName = async () => {
     try {
-      console.log('[Settings Page] Fetching user name...')
       const response = await apiGet('/api/settings?key=user_name')
       if (response.ok) {
         const data = await response.json()
-        console.log('[Settings Page] User name fetched:', data)
         setUserName(data.value || '')
-      } else {
-        console.error('[Settings Page] Failed to fetch user name:', response.status)
       }
     } catch (error) {
       console.error('[Settings Page] Error fetching user name:', error)
+    }
+  }
+
+  const fetchCompanyName = async () => {
+    try {
+      // Supabaseから会社名を取得
+      const response = await apiGet('/api/company')
+      if (response.ok) {
+        const data = await response.json()
+        setCompanyName(data.name || '')
+      }
+    } catch (error) {
+      console.error('Failed to fetch company name:', error)
     }
   }
 
@@ -85,7 +96,7 @@ export default function SettingsPage() {
           }
         }
       } catch (error) {
-        console.error(`Error fetching API key for ${provider.name}:`, error)
+        // エラーは無視（設定されていないだけ）
       }
     }
 
@@ -106,14 +117,11 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        console.log('Name saved successfully:', data)
         setShowNameSuccess(true)
         setTimeout(() => setShowNameSuccess(false), 3000)
         await fetchUserName()
       } else {
         const error = await response.json()
-        console.error('Failed to save name:', error)
         alert(`保存に失敗しました: ${error.error}`)
       }
     } catch (error) {
@@ -138,8 +146,6 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        console.log('API key saved successfully:', data)
         setShowKeySuccess(true)
         setTimeout(() => setShowKeySuccess(false), 3000)
         await fetchAllApiKeys()
@@ -147,7 +153,6 @@ export default function SettingsPage() {
         setSelectedProvider(null)
       } else {
         const error = await response.json()
-        console.error('Failed to save API key:', error)
         alert(`保存に失敗しました: ${error.error}`)
       }
     } catch (error) {
@@ -240,6 +245,21 @@ export default function SettingsPage() {
               />
               <p className="text-xs text-gray-500 mt-2">
                 メールアドレスは変更できません
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                企業名
+              </label>
+              <input
+                type="text"
+                value={companyName}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                企業名は変更できません
               </p>
             </div>
 

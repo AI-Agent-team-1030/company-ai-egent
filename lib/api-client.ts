@@ -7,13 +7,7 @@ export async function apiRequest(
   try {
     const {
       data: { session },
-      error,
     } = await supabase.auth.getSession()
-
-    if (error) {
-      console.error('API Client: Session error', error)
-      // エラーがある場合でもリクエストを続行（認証なし）
-    }
 
     const headers = new Headers(options.headers)
 
@@ -26,7 +20,6 @@ export async function apiRequest(
       headers,
     })
   } catch (error) {
-    console.error('API Client: Failed to get session', error)
     // エラーが発生してもリクエストを続行
     return fetch(url, options)
   }

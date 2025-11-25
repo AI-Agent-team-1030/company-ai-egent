@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (apiKeyError || !apiKeySetting || !apiKeySetting.value) {
-      console.error(`[Chat API] ${providerName} API key not found:`, apiKeyError)
       return NextResponse.json(
         { error: `${providerName}のAPIキーが設定されていません。設定ページから登録してください。` },
         { status: 400 }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
 
     // APIキーを復号化
     const apiKey = decrypt(apiKeySetting.value)
-    console.log('[Chat API] API key retrieved and decrypted')
 
     // 会話履歴を取得
     const { data: messages, error: historyError } = await supabase

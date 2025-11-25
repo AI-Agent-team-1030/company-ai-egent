@@ -39,8 +39,6 @@ export async function GET(request: NextRequest) {
 
     if (key) {
       // 特定のキーを取得（最新のものを取得）
-      console.log(`[Settings API GET] Fetching setting: key=${key}, user_id=${user.id}`)
-
       const { data, error } = await supabase
         .from('app_settings')
         .select('*')
@@ -58,17 +56,14 @@ export async function GET(request: NextRequest) {
 
       if (!data) {
         // 設定が見つからない場合はnullを返す
-        console.log(`[Settings API GET] Setting not found: key=${key}`)
         return NextResponse.json({ key, value: null })
       }
 
       // センシティブなキーの場合は復号化
       if (isSensitiveKey(key)) {
-        console.log(`[Settings API GET] Decrypting sensitive data for key=${key}`)
         data.value = decrypt(data.value)
       }
 
-      console.log(`[Settings API GET] Setting found:`, data)
       return NextResponse.json(data)
     } else {
       // 全ての設定を取得
@@ -131,12 +126,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[Settings API] Saving setting: key=${key}, user_id=${user.id}`)
-
     // センシティブなキーの場合は暗号化
     let valueToSave = value
     if (isSensitiveKey(key)) {
-      console.log(`[Settings API] Encrypting sensitive data for key=${key}`)
       valueToSave = encrypt(value)
     }
 
@@ -152,7 +144,6 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // 既存のレコードを更新
-      console.log(`[Settings API] Updating existing setting: id=${existing.id}`)
       const result = await supabase
         .from('app_settings')
         .update({ value: valueToSave, updated_at: new Date().toISOString() })
@@ -164,7 +155,6 @@ export async function POST(request: NextRequest) {
       error = result.error
     } else {
       // 新しいレコードを作成
-      console.log(`[Settings API] Creating new setting`)
       const result = await supabase
         .from('app_settings')
         .insert({
@@ -189,7 +179,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log('[Settings API] Setting saved successfully:', data)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error in POST /api/settings:', error)

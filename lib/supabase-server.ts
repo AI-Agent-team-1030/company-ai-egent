@@ -13,7 +13,6 @@ export async function getUserFromRequest(request: Request) {
     const authHeader = request.headers.get('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('[getUserFromRequest] No Authorization header found')
       return { user: null, error: new Error('No authorization header') }
     }
 
@@ -26,19 +25,15 @@ export async function getUserFromRequest(request: Request) {
     } = await supabase.auth.getUser(token)
 
     if (error) {
-      console.error('[getUserFromRequest] Error getting user:', error)
       return { user: null, error }
     }
 
     if (!user) {
-      console.error('[getUserFromRequest] No user found')
       return { user: null, error: new Error('User not found') }
     }
 
-    console.log('[getUserFromRequest] User authenticated:', user.id)
     return { user, error: null }
   } catch (error) {
-    console.error('[getUserFromRequest] Exception:', error)
     return { user: null, error: error as Error }
   }
 }

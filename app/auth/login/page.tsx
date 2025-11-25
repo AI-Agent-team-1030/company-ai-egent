@@ -31,66 +31,45 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    console.log('[Login] Starting login process...')
-
     try {
       // 1. 企業名のバリデーション
       if (!companyName.trim()) {
-        console.log('[Login] Company name is empty')
         setError('企業名を入力してください')
         setLoading(false)
         return
       }
 
-      console.log('[Login] Company name:', companyName)
-      console.log('[Login] Email:', email)
-
       // 2. Supabase認証
-      console.log('[Login] Attempting sign in...')
       const { data: authData, error: authError } = await signIn(email, password)
 
-      console.log('[Login] Sign in result:', { authData, authError })
-
       if (authError) {
-        console.error('[Login] Auth error:', authError)
         setError(`認証エラー: ${authError.message}`)
         setLoading(false)
         return
       }
 
       if (!authData || !authData.user) {
-        console.error('[Login] No user data returned')
         setError('ログインに失敗しました')
         setLoading(false)
         return
       }
 
-      console.log('[Login] User authenticated:', authData.user.id)
-
       // 3. 企業名を正規化して検索
       const normalizedName = normalizeCompanyName(companyName)
-      console.log('[Login] Normalized company name:', normalizedName)
 
-      console.log('[Login] Searching for company...')
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('id, name')
         .eq('normalized_name', normalizedName)
         .single()
 
-      console.log('[Login] Company search result:', { company, companyError })
-
       if (companyError || !company) {
-        console.error('[Login] Company not found:', companyError)
         setError('企業が見つかりません。企業名を確認してください')
         setLoading(false)
         return
       }
 
-      console.log('[Login] Company found:', company.id)
-
       // 4. ユーザーがその企業に所属しているか確認
-      console.log('[Login] Checking user profile...')
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -98,29 +77,20 @@ export default function LoginPage() {
         .eq('company_id', company.id)
         .single()
 
-      console.log('[Login] Profile result:', { profile, profileError })
-
       if (profileError || !profile) {
-        console.error('[Login] User not in company:', profileError)
         setError('この企業に所属していません')
         setLoading(false)
         return
       }
 
-      console.log('[Login] Profile verified')
-
       // 5. 企業IDをローカルストレージに保存
-      console.log('[Login] Saving to localStorage...')
       localStorage.setItem('company_id', company.id)
       localStorage.setItem('company_name', company.name)
-
-      console.log('[Login] Login complete! Redirecting to /chat...')
 
       // 6. チャットページにリダイレクト
       setLoading(false)
       router.push('/chat')
     } catch (err: any) {
-      console.error('[Login] Unexpected error:', err)
       setError(err.message || 'ログイン中にエラーが発生しました')
       setLoading(false)
     }

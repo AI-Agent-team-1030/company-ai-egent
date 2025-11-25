@@ -50,12 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session)
-
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully')
-      }
-
       if (event === 'SIGNED_OUT') {
         // ローカルストレージをクリア
         if (typeof window !== 'undefined') {
@@ -73,17 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    console.log('[AuthContext] signIn called with email:', email)
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log('[AuthContext] signInWithPassword completed:', { data, error })
-
-      // データとエラーを返す（リダイレクトはログインページで処理）
       return { data, error }
     } catch (err) {
       console.error('[AuthContext] signIn exception:', err)
