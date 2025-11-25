@@ -8,21 +8,39 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export async function getUserFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization')
+  try {
+    // Authorizationヘッダーからトークンを取得
+    const authHeader = request.headers.get('Authorization')
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { user: null, error: new Error('No authorization header') }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[getUserFromRequest] No Authorization header found')
+      return { user: null, error: new Error('No authorization header') }
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token)
+
+    if (error) {
+      console.error('[getUserFromRequest] Error getting user:', error)
+      return { user: null, error }
+    }
+
+    if (!user) {
+      console.error('[getUserFromRequest] No user found')
+      return { user: null, error: new Error('User not found') }
+    }
+
+    console.log('[getUserFromRequest] User authenticated:', user.id)
+    return { user, error: null }
+  } catch (error) {
+    console.error('[getUserFromRequest] Exception:', error)
+    return { user: null, error: error as Error }
   }
-
-  const token = authHeader.replace('Bearer ', '')
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token)
-
-  return { user, error }
 }
 
 export function createServerClient() {

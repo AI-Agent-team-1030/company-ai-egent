@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { conversation_id, content, referenced_knowledge_ids } = body
+    const { conversation_id, content, referenced_knowledge_ids, provider } = body
 
     // バリデーション
     if (!conversation_id || !content) {
@@ -44,6 +44,21 @@ export async function POST(request: NextRequest) {
         { error: 'conversation_id and content are required' },
         { status: 400 }
       )
+    }
+
+    // プロバイダーに応じてAPIキーの種類を決定
+    let apiKeyName = 'anthropic_api_key' // デフォルト
+    let providerName = 'Claude'
+
+    if (provider === 'OpenAI') {
+      apiKeyName = 'openai_api_key'
+      providerName = 'OpenAI'
+    } else if (provider === 'Google Gemini') {
+      apiKeyName = 'google_gemini_api_key'
+      providerName = 'Google Gemini'
+    } else if (provider === 'Anthropic') {
+      apiKeyName = 'anthropic_api_key'
+      providerName = 'Claude'
     }
 
     // ユーザーメッセージを保存
@@ -54,6 +69,7 @@ export async function POST(request: NextRequest) {
           conversation_id,
           role: 'user',
           content,
+          user_id: user.id,
           referenced_knowledge_ids: referenced_knowledge_ids || [],
         },
       ])
@@ -65,11 +81,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: userMsgError.message }, { status: 500 })
     }
 
-    // ユーザーのAPIキーを設定から取得
+    // ユーザーの選択したプロバイダーのAPIキーを設定から取得
     const { data: apiKeySetting, error: apiKeyError } = await supabase
       .from('app_settings')
       .select('value')
-      .eq('key', 'anthropic_api_key')
+      .eq('key', apiKeyName)
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -77,9 +93,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (apiKeyError || !apiKeySetting || !apiKeySetting.value) {
-      console.error('[Chat API] API key not found:', apiKeyError)
+      console.error(`[Chat API] ${providerName} API key not found:`, apiKeyError)
       return NextResponse.json(
-        { error: 'Claude APIキーが設定されていません。設定ページから登録してください。' },
+        { error: `${providerName}のAPIキーが設定されていません。設定ページから登録してください。` },
         { status: 400 }
       )
     }
@@ -165,6 +181,7 @@ export async function POST(request: NextRequest) {
           conversation_id,
           role: 'assistant',
           content: assistantContent,
+          user_id: user.id,
           referenced_knowledge_ids: referenced_knowledge_ids || [],
         },
       ])

@@ -1,23 +1,35 @@
-import { supabaseAuth } from './supabase-auth'
+import { supabase } from './supabase'
 
 export async function apiRequest(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const {
-    data: { session },
-  } = await supabaseAuth.auth.getSession()
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
 
-  const headers = new Headers(options.headers)
+    if (error) {
+      console.error('API Client: Session error', error)
+      // エラーがある場合でもリクエストを続行（認証なし）
+    }
 
-  if (session?.access_token) {
-    headers.set('Authorization', `Bearer ${session.access_token}`)
+    const headers = new Headers(options.headers)
+
+    if (session?.access_token) {
+      headers.set('Authorization', `Bearer ${session.access_token}`)
+    }
+
+    return fetch(url, {
+      ...options,
+      headers,
+    })
+  } catch (error) {
+    console.error('API Client: Failed to get session', error)
+    // エラーが発生してもリクエストを続行
+    return fetch(url, options)
   }
-
-  return fetch(url, {
-    ...options,
-    headers,
-  })
 }
 
 export async function apiGet(url: string): Promise<Response> {

@@ -1,41 +1,59 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiGet, apiPost } from '@/lib/api-client'
 import {
   UserIcon,
-  BellIcon,
-  ShieldCheckIcon,
-  PaintBrushIcon,
-  CpuChipIcon,
   KeyIcon,
   CheckCircleIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 
-export default function SettingsPage() {
-  const { user } = useAuth()
-  const [settings, setSettings] = useState({
-    notifications: true,
-    emailAlerts: false,
-    aiAssist: true,
-    dataSharing: false,
-  })
+// AIプロバイダーの定義
+const AI_PROVIDERS = [
+  {
+    id: 'anthropic',
+    name: 'Anthropic',
+    settingKey: 'anthropic_api_key',
+    placeholder: 'sk-ant-api03-xxxxxxxxxxxxxxxxxx',
+    getKeyUrl: 'https://console.anthropic.com/',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    settingKey: 'openai_api_key',
+    placeholder: '',
+    getKeyUrl: 'https://platform.openai.com/api-keys',
+  },
+  {
+    id: 'google-gemini',
+    name: 'Google Gemini',
+    settingKey: 'google_gemini_api_key',
+    placeholder: '',
+    getKeyUrl: 'https://makersuite.google.com/app/apikey',
+  },
+]
 
+export default function SettingsPage() {
+  const { user, loading } = useAuth()
   const [userName, setUserName] = useState('')
+  const [selectedProvider, setSelectedProvider] = useState<typeof AI_PROVIDERS[0] | null>(null)
   const [apiKey, setApiKey] = useState('')
-  const [apiKeyStatus, setApiKeyStatus] = useState<'loading' | 'saved' | 'not_set' | 'error'>('loading')
-  const [isSaving, setIsSaving] = useState(false)
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [isSavingName, setIsSavingName] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [isSavingKey, setIsSavingKey] = useState(false)
   const [showNameSuccess, setShowNameSuccess] = useState(false)
+  const [showKeySuccess, setShowKeySuccess] = useState(false)
 
   // ユーザー名とAPIキーを取得
   useEffect(() => {
-    fetchUserName()
-    fetchApiKey()
-  }, [])
+    if (!loading && user) {
+      fetchUserName()
+      fetchAllApiKeys()
+    }
+  }, [user, loading])
 
   const fetchUserName = async () => {
     try {
@@ -53,27 +71,25 @@ export default function SettingsPage() {
     }
   }
 
-  const fetchApiKey = async () => {
-    try {
-      console.log('[Settings Page] Fetching API key...')
-      const response = await apiGet('/api/settings?key=anthropic_api_key')
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[Settings Page] API key fetched:', data.value ? 'HAS VALUE' : 'NO VALUE')
-        // セキュリティのため、最初の8文字と最後の4文字のみ表示
-        const maskedKey = data.value
-          ? `${data.value.substring(0, 8)}${'*'.repeat(40)}${data.value.substring(data.value.length - 4)}`
-          : ''
-        setApiKey(maskedKey)
-        setApiKeyStatus(data.value ? 'saved' : 'not_set')
-      } else {
-        console.error('[Settings Page] Failed to fetch API key:', response.status)
-        setApiKeyStatus('not_set')
+  const fetchAllApiKeys = async () => {
+    const keys: Record<string, string> = {}
+
+    for (const provider of AI_PROVIDERS) {
+      try {
+        const response = await apiGet(`/api/settings?key=${provider.settingKey}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.value) {
+            // マスク表示
+            keys[provider.settingKey] = `${data.value.substring(0, 8)}${'*'.repeat(20)}${data.value.substring(data.value.length - 4)}`
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching API key for ${provider.name}:`, error)
       }
-    } catch (error) {
-      console.error('[Settings Page] Error fetching API key:', error)
-      setApiKeyStatus('error')
     }
+
+    setApiKeys(keys)
   }
 
   const handleSaveName = async () => {
@@ -94,7 +110,6 @@ export default function SettingsPage() {
         console.log('Name saved successfully:', data)
         setShowNameSuccess(true)
         setTimeout(() => setShowNameSuccess(false), 3000)
-        // 保存後に再取得して確実に反映
         await fetchUserName()
       } else {
         const error = await response.json()
@@ -110,26 +125,26 @@ export default function SettingsPage() {
   }
 
   const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
+    if (!selectedProvider || !apiKey.trim()) {
       alert('APIキーを入力してください')
       return
     }
 
-    setIsSaving(true)
+    setIsSavingKey(true)
     try {
       const response = await apiPost('/api/settings', {
-        key: 'anthropic_api_key',
+        key: selectedProvider.settingKey,
         value: apiKey,
       })
 
       if (response.ok) {
         const data = await response.json()
         console.log('API key saved successfully:', data)
-        setApiKeyStatus('saved')
-        setShowSuccess(true)
-        setTimeout(() => setShowSuccess(false), 3000)
-        // マスク表示に切り替え
-        await fetchApiKey()
+        setShowKeySuccess(true)
+        setTimeout(() => setShowKeySuccess(false), 3000)
+        await fetchAllApiKeys()
+        setApiKey('')
+        setSelectedProvider(null)
       } else {
         const error = await response.json()
         console.error('Failed to save API key:', error)
@@ -139,31 +154,31 @@ export default function SettingsPage() {
       console.error('Error saving API key:', error)
       alert('保存中にエラーが発生しました')
     } finally {
-      setIsSaving(false)
+      setIsSavingKey(false)
     }
   }
 
-  const settingsSections = [
-    {
-      title: '通知設定',
-      icon: BellIcon,
-      items: [
-        { label: 'プッシュ通知', type: 'toggle', key: 'notifications' },
-        { label: 'メール通知', type: 'toggle', key: 'emailAlerts' },
-      ],
-    },
-    {
-      title: 'AI設定',
-      icon: CpuChipIcon,
-      items: [
-        { label: 'AIアシスタント', type: 'toggle', key: 'aiAssist' },
-        { label: 'データ共有', type: 'toggle', key: 'dataSharing' },
-      ],
-    },
-  ]
+  // ローディング中の表示
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    )
+  }
 
-  const handleToggle = (key: string) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))
+  // 認証されていない場合の表示
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">認証されていません。ログインしてください。</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -171,7 +186,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">設定</h1>
-        <p className="text-gray-600">アカウントとシステムの設定</p>
+        <p className="text-gray-600">アカウントとAPIキーの設定</p>
       </div>
 
       {/* Settings Sections */}
@@ -252,10 +267,11 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* Claude API Key Section */}
+        {/* AI API Keys Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
           className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
         >
           <div className="border-b border-gray-200 p-6">
@@ -264,122 +280,113 @@ export default function SettingsPage() {
                 <KeyIcon className="w-6 h-6 text-gray-900" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900">Claude API キー</h2>
+                <h2 className="text-xl font-bold text-gray-900">AI APIキー</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  チャット機能を使用するには、Claude APIキーが必要です
+                  使用するAIモデルのAPIキーを設定してください
                 </p>
               </div>
-              {apiKeyStatus === 'saved' && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
-                  <CheckCircleIcon className="w-4 h-4" />
-                  設定済み
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                APIキー
+          <div className="p-6">
+            {/* AI Providers List */}
+            <div className="space-y-2 mb-6">
+              <label className="block text-sm font-bold text-gray-900 mb-3">
+                AIプロバイダーを選択
               </label>
-              <input
-                type="text"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxx"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono text-sm"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Claude APIキーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Anthropic Console</a> で取得できます
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSaveApiKey}
-                disabled={isSaving || !apiKey.trim()}
-                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                {isSaving ? '保存中...' : 'APIキーを保存'}
-              </button>
-
-              {showSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 text-green-600 font-medium"
+              {AI_PROVIDERS.map((provider) => (
+                <button
+                  key={provider.id}
+                  onClick={() => {
+                    setSelectedProvider(provider)
+                    setApiKey(apiKeys[provider.settingKey] || '')
+                  }}
+                  className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+                    selectedProvider?.id === provider.id
+                      ? 'border-gray-900 bg-gray-50'
+                      : apiKeys[provider.settingKey]
+                      ? 'border-green-500 hover:border-green-600 bg-green-50/50 shadow-md ring-2 ring-green-500/20'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
                 >
-                  <CheckCircleIcon className="w-5 h-5" />
-                  保存しました
-                </motion.div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {settingsSections.map((section, sectionIndex) => (
-          <motion.div
-            key={sectionIndex}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: (sectionIndex + 1) * 0.1 }}
-            className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
-          >
-            <div className="border-b border-gray-200 p-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <section.icon className="w-6 h-6 text-gray-900" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {section.items.map((item, itemIndex) => (
-                <div
-                  key={itemIndex}
-                  className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-                >
-                  <span className="text-gray-900 font-medium">{item.label}</span>
-
-                  {'type' in item && item.type === 'toggle' ? (
-                    <button
-                      onClick={() => handleToggle(item.key)}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        settings[item.key as keyof typeof settings]
-                          ? 'bg-black'
-                          : 'bg-gray-300'
-                      }`}
-                    >
-                      <motion.div
-                        animate={{
-                          x: settings[item.key as keyof typeof settings] ? 24 : 0,
-                        }}
-                        className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full"
-                      />
-                    </button>
-                  ) : (
-                    <span className="text-gray-600">{'value' in item ? String(item.value) : ''}</span>
-                  )}
-                </div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <span className="font-bold text-gray-900">{provider.name}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {apiKeys[provider.settingKey] && (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
+                        <CheckCircleIcon className="w-4 h-4" />
+                        設定済み
+                      </div>
+                    )}
+                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                  </div>
+                </button>
               ))}
             </div>
-          </motion.div>
-        ))}
 
-        {/* Danger Zone */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white border-2 border-red-200 rounded-xl p-6"
-        >
-          <h2 className="text-xl font-bold text-red-600 mb-4">危険な操作</h2>
-          <button className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold">
-            アカウントを削除
-          </button>
+            {/* API Key Input Form */}
+            <AnimatePresence>
+              {selectedProvider && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="border-t border-gray-200 pt-6 space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
+                      {selectedProvider.name} のAPIキー
+                    </label>
+                    <input
+                      type="text"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder={selectedProvider.placeholder}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      APIキーは <a href={selectedProvider.getKeyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{selectedProvider.name}</a> で取得できます
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSaveApiKey}
+                      disabled={isSavingKey || !apiKey.trim()}
+                      className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      {isSavingKey ? '保存中...' : 'APIキーを保存'}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedProvider(null)
+                        setApiKey('')
+                      }}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                    >
+                      キャンセル
+                    </button>
+
+                    {showKeySuccess && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2 text-green-600 font-medium"
+                      >
+                        <CheckCircleIcon className="w-5 h-5" />
+                        保存しました
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </div>
     </div>

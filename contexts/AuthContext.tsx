@@ -2,15 +2,15 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabaseAuth } from '@/lib/supabase-auth'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any }>
-  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
+  signUp: (email: string, password: string) => Promise<{ data: any; error: any }>
   signOut: () => Promise<void>
 }
 
@@ -24,16 +24,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // 初期セッションを取得
-    supabaseAuth.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error)
+        // エラーがある場合はセッションをクリア
+        setSession(null)
+        setUser(null)
+        // ローカルストレージもクリア
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('supabase.auth.token')
+        }
+      } else {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+      setLoading(false)
+    }).catch((error) => {
+      console.error('Failed to get session:', error)
+      setSession(null)
+      setUser(null)
       setLoading(false)
     })
 
     // 認証状態の変更をリッスン
     const {
       data: { subscription },
-    } = supabaseAuth.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session)
+
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully')
+      }
+
+      if (event === 'SIGNED_OUT') {
+        // ローカルストレージをクリア
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('company_id')
+          localStorage.removeItem('company_name')
+        }
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -43,20 +73,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabaseAuth.auth.signInWithPassword({
-      email,
-      password,
-    })
+    console.log('[AuthContext] signIn called with email:', email)
 
-    if (!error) {
-      router.push('/chat')
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      console.log('[AuthContext] signInWithPassword completed:', { data, error })
+
+      // データとエラーを返す（リダイレクトはログインページで処理）
+      return { data, error }
+    } catch (err) {
+      console.error('[AuthContext] signIn exception:', err)
+      return { data: null, error: err }
     }
-
-    return { error }
   }
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabaseAuth.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -64,16 +100,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     })
 
-    if (!error && data.user) {
-      // サインアップ成功後、すぐにログイン状態にしてチャットページへ
-      router.push('/chat')
-    }
-
-    return { error }
+    // データとエラーを返すのみ。リダイレクトはサインアップページで処理
+    return { data, error }
   }
 
   const signOut = async () => {
-    await supabaseAuth.auth.signOut()
+    // ローカルストレージをクリア
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('company_id')
+      localStorage.removeItem('company_name')
+    }
+    await supabase.auth.signOut()
     router.push('/auth/login')
   }
 

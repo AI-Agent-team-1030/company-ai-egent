@@ -8,7 +8,8 @@ import {
   MagnifyingGlassIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import { KnowledgeItem } from '@/types'
 import ReactMarkdown from 'react-markdown'
@@ -31,13 +32,63 @@ interface SearchStep {
   knowledgeTitle?: string
 }
 
+interface AIModel {
+  id: string
+  name: string
+  provider: 'Anthropic' | 'OpenAI' | 'Google Gemini'
+  description: string
+}
+
+// AIモデルの定義
+const AI_MODELS: AIModel[] = [
+  {
+    id: 'sonnet-4.5',
+    name: 'Sonnet 4.5',
+    provider: 'Anthropic',
+    description: '高性能・推奨',
+  },
+  {
+    id: 'haiku-4.5',
+    name: 'Haiku 4.5',
+    provider: 'Anthropic',
+    description: '高速・軽量',
+  },
+  {
+    id: 'gpt-5.1',
+    name: 'GPT-5.1',
+    provider: 'OpenAI',
+    description: '最新・高性能',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'Google Gemini',
+    description: '最新・高性能',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'Google Gemini',
+    description: '高速・軽量',
+  },
+  {
+    id: 'gemini-3-pro',
+    name: 'Gemini 3 Pro',
+    provider: 'Google Gemini',
+    description: '高性能',
+  },
+]
+
 export default function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedModel, setSelectedModel] = useState<AIModel>(AI_MODELS[0])
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const modelDropdownRef = useRef<HTMLDivElement>(null)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
   // 会話を作成
@@ -76,6 +127,23 @@ export default function ChatPage() {
       timeoutsRef.current = []
     }
   }, [])
+
+  // ドロップダウンメニューの外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false)
+      }
+    }
+
+    if (isModelDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isModelDropdownOpen])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -175,11 +243,11 @@ export default function ChatPage() {
         await createManagedTimeout(() => {}, 400)
       }
 
-      // Step 3: Claude AIで分析中
+      // Step 3: 選択したAIで分析中
       const analyzingStep: SearchStep = {
         id: 'step-analyzing',
         type: 'analyzing',
-        message: 'Claude AIが情報を分析中...',
+        message: `${selectedModel.name}が情報を分析中...`,
       }
       searchSteps.push(analyzingStep)
       setMessages((prev) => prev.map(m =>
@@ -188,10 +256,12 @@ export default function ChatPage() {
           : m
       ))
 
-      // Claude APIに送信
+      // AI APIに送信
       const response = await apiPost('/api/chat/messages', {
         conversation_id: conversationId,
         content: text,
+        model_id: selectedModel.id,
+        provider: selectedModel.provider,
       })
 
       if (!response.ok) {
@@ -277,6 +347,79 @@ export default function ChatPage() {
           <div className="flex-1">
             <h1 className="text-xl font-bold text-gray-900">AIアシスタント</h1>
             <p className="text-sm text-gray-600">お悩み相談・ナレッジ検索</p>
+          </div>
+
+          {/* Model Selector */}
+          <div className="relative" ref={modelDropdownRef}>
+            <button
+              onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <SparklesIcon className="w-4 h-4 text-gray-700" />
+              <div className="text-left">
+                <div className="text-sm font-bold text-gray-900">{selectedModel.name}</div>
+                <div className="text-xs text-gray-600">{selectedModel.description}</div>
+              </div>
+              <ChevronDownIcon className={`w-4 h-4 text-gray-600 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isModelDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="p-2">
+                  <div className="text-xs font-bold text-gray-500 px-3 py-2">Anthropic</div>
+                  {AI_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => {
+                        setSelectedModel(model)
+                        setIsModelDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                        selectedModel.id === model.id ? 'bg-gray-100' : ''
+                      }`}
+                    >
+                      <div className="font-bold text-sm text-gray-900">{model.name}</div>
+                      <div className="text-xs text-gray-600">{model.description}</div>
+                    </button>
+                  ))}
+
+                  <div className="text-xs font-bold text-gray-500 px-3 py-2 mt-2">OpenAI</div>
+                  {AI_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => {
+                        setSelectedModel(model)
+                        setIsModelDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                        selectedModel.id === model.id ? 'bg-gray-100' : ''
+                      }`}
+                    >
+                      <div className="font-bold text-sm text-gray-900">{model.name}</div>
+                      <div className="text-xs text-gray-600">{model.description}</div>
+                    </button>
+                  ))}
+
+                  <div className="text-xs font-bold text-gray-500 px-3 py-2 mt-2">Google Gemini</div>
+                  {AI_MODELS.filter(m => m.provider === 'Google Gemini').map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => {
+                        setSelectedModel(model)
+                        setIsModelDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                        selectedModel.id === model.id ? 'bg-gray-100' : ''
+                      }`}
+                    >
+                      <div className="font-bold text-sm text-gray-900">{model.name}</div>
+                      <div className="text-xs text-gray-600">{model.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
--- 法人AIエージェントシステム データベーススキーマ
+-- 法人AIエージェントシステム データベーススキーマ（修正版）
+-- このSQLを実行する前に、全テーブルを削除してください
 
 -- UUIDエクステンションを有効化
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -7,11 +8,28 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- ===================================
+-- 既存テーブルを削除（クリーンアップ）
+-- ===================================
+
+DROP TABLE IF EXISTS document_chunks CASCADE;
+DROP TABLE IF EXISTS uploaded_documents CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_conversations CASCADE;
+DROP TABLE IF EXISTS knowledge_items CASCADE;
+DROP TABLE IF EXISTS folders CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS companies CASCADE;
+DROP TABLE IF EXISTS app_settings CASCADE;
+
+-- 関数も削除
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+
+-- ===================================
 -- テーブル作成
 -- ===================================
 
 -- アプリケーション設定テーブル
-CREATE TABLE IF NOT EXISTS app_settings (
+CREATE TABLE app_settings (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   key TEXT NOT NULL,
@@ -22,7 +40,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 -- フォルダーテーブル
-CREATE TABLE IF NOT EXISTS folders (
+CREATE TABLE folders (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -33,7 +51,7 @@ CREATE TABLE IF NOT EXISTS folders (
 );
 
 -- ナレッジベーステーブル
-CREATE TABLE IF NOT EXISTS knowledge_items (
+CREATE TABLE knowledge_items (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
@@ -47,7 +65,7 @@ CREATE TABLE IF NOT EXISTS knowledge_items (
 );
 
 -- チャット会話テーブル
-CREATE TABLE IF NOT EXISTS chat_conversations (
+CREATE TABLE chat_conversations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -56,7 +74,7 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
 );
 
 -- チャットメッセージテーブル
-CREATE TABLE IF NOT EXISTS chat_messages (
+CREATE TABLE chat_messages (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -67,7 +85,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 -- アップロードドキュメントテーブル
-CREATE TABLE IF NOT EXISTS uploaded_documents (
+CREATE TABLE uploaded_documents (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   filename TEXT NOT NULL,
@@ -81,7 +99,7 @@ CREATE TABLE IF NOT EXISTS uploaded_documents (
 );
 
 -- ドキュメントチャンクテーブル
-CREATE TABLE IF NOT EXISTS document_chunks (
+CREATE TABLE document_chunks (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   document_id UUID NOT NULL REFERENCES uploaded_documents(id) ON DELETE CASCADE,
   chunk_index INTEGER NOT NULL,
@@ -94,36 +112,36 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 -- ===================================
 
 -- app_settings
-CREATE INDEX IF NOT EXISTS idx_app_settings_user_id ON app_settings(user_id);
-CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings(key);
+CREATE INDEX idx_app_settings_user_id ON app_settings(user_id);
+CREATE INDEX idx_app_settings_key ON app_settings(key);
 
 -- folders
-CREATE INDEX IF NOT EXISTS idx_folders_user_id ON folders(user_id);
-CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id);
-CREATE INDEX IF NOT EXISTS idx_folders_type ON folders(type);
+CREATE INDEX idx_folders_user_id ON folders(user_id);
+CREATE INDEX idx_folders_parent_id ON folders(parent_id);
+CREATE INDEX idx_folders_type ON folders(type);
 
 -- knowledge_items
-CREATE INDEX IF NOT EXISTS idx_knowledge_items_user_id ON knowledge_items(user_id);
-CREATE INDEX IF NOT EXISTS idx_knowledge_items_folder_id ON knowledge_items(folder_id);
-CREATE INDEX IF NOT EXISTS idx_knowledge_items_created_at ON knowledge_items(created_at DESC);
+CREATE INDEX idx_knowledge_items_user_id ON knowledge_items(user_id);
+CREATE INDEX idx_knowledge_items_folder_id ON knowledge_items(folder_id);
+CREATE INDEX idx_knowledge_items_created_at ON knowledge_items(created_at DESC);
 
 -- chat_conversations
-CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id ON chat_conversations(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_conversations_updated_at ON chat_conversations(updated_at DESC);
+CREATE INDEX idx_chat_conversations_user_id ON chat_conversations(user_id);
+CREATE INDEX idx_chat_conversations_updated_at ON chat_conversations(updated_at DESC);
 
 -- chat_messages
-CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX idx_chat_messages_conversation_id ON chat_messages(conversation_id);
+CREATE INDEX idx_chat_messages_user_id ON chat_messages(user_id);
+CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at);
 
 -- uploaded_documents
-CREATE INDEX IF NOT EXISTS idx_uploaded_documents_user_id ON uploaded_documents(user_id);
-CREATE INDEX IF NOT EXISTS idx_uploaded_documents_processed ON uploaded_documents(processed);
-CREATE INDEX IF NOT EXISTS idx_uploaded_documents_created_at ON uploaded_documents(created_at DESC);
+CREATE INDEX idx_uploaded_documents_user_id ON uploaded_documents(user_id);
+CREATE INDEX idx_uploaded_documents_processed ON uploaded_documents(processed);
+CREATE INDEX idx_uploaded_documents_created_at ON uploaded_documents(created_at DESC);
 
 -- document_chunks
-CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
-CREATE INDEX IF NOT EXISTS idx_document_chunks_content ON document_chunks USING GIN(to_tsvector('english', content));
+CREATE INDEX idx_document_chunks_document_id ON document_chunks(document_id);
+CREATE INDEX idx_document_chunks_content ON document_chunks USING GIN(to_tsvector('english', content));
 
 -- ===================================
 -- RLS (Row Level Security) ポリシー
@@ -289,3 +307,6 @@ CREATE TRIGGER update_chat_conversations_updated_at
   BEFORE UPDATE ON chat_conversations
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- 完了メッセージ
+SELECT 'All tables created successfully!' AS status;

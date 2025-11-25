@@ -7,33 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiGet } from '@/lib/api-client'
 import {
-  HomeIcon,
   ChatBubbleLeftRightIcon,
-  ClipboardDocumentListIcon,
   BookOpenIcon,
-  DocumentTextIcon,
-  Squares2X2Icon,
-  BellIcon,
   Cog6ToothIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  SparklesIcon,
-  ChartBarIcon,
-  CubeTransparentIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
-  { name: 'ダッシュボード', href: '/dashboard', icon: HomeIcon },
-  { name: 'アナリティクス', href: '/analytics', icon: ChartBarIcon },
   { name: 'AIチャット', href: '/chat', icon: ChatBubbleLeftRightIcon },
-  { name: 'ゴール管理', href: '/goals', icon: ClipboardDocumentListIcon },
-  { name: 'AIエージェント', href: '/agents', icon: SparklesIcon },
-  { name: 'シンプルエージェント', href: '/simple-agent', icon: CubeTransparentIcon },
   { name: 'ナレッジベース', href: '/knowledge', icon: BookOpenIcon },
-  { name: 'ドキュメント', href: '/documents', icon: DocumentTextIcon },
-  { name: '組織図', href: '/organization', icon: Squares2X2Icon },
-  { name: '通知', href: '/notifications', icon: BellIcon },
   { name: '設定', href: '/settings', icon: Cog6ToothIcon },
 ]
 

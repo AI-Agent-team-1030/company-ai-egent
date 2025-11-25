@@ -11,7 +11,7 @@ const notoSansJP = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   title: '法人自走型AIエージェント',
-  description: '組織全体を最適化するAIエージェントシステム',
+  description: '企業独自の社内ポータルサイト',
 }
 
 export default function RootLayout({
