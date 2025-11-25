@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getUserFromRequest } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,29 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // ユーザー認証チェック
+    const { user, error: authError } = await getUserFromRequest(request)
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 会話が存在し、ユーザーが所有者であることを確認
+    const { data: conversation, error: fetchError } = await supabase
+      .from('chat_conversations')
+      .select('user_id')
+      .eq('id', params.id)
+      .single()
+
+    if (fetchError || !conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    if (conversation.user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // 削除実行
     const { error } = await supabase
       .from('chat_conversations')
       .delete()

@@ -55,6 +55,19 @@ export async function apiPut(
   })
 }
 
+export async function apiPatch(
+  url: string,
+  body?: any
+): Promise<Response> {
+  return apiRequest(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+}
+
 export async function apiDelete(url: string): Promise<Response> {
   return apiRequest(url, { method: 'DELETE' })
 }
