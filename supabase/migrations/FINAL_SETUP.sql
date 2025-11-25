@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE TABLE IF NOT EXISTS uploaded_documents (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
   filename TEXT NOT NULL,
   original_filename TEXT NOT NULL,
   file_type TEXT NOT NULL,
@@ -125,6 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_company_id ON chat_messages(company_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_uploaded_documents_user_id ON uploaded_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_uploaded_documents_folder_id ON uploaded_documents(folder_id);
 CREATE INDEX IF NOT EXISTS idx_uploaded_documents_processed ON uploaded_documents(processed);
 CREATE INDEX IF NOT EXISTS idx_uploaded_documents_created_at ON uploaded_documents(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);

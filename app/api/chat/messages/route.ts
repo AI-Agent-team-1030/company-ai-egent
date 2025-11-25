@@ -197,23 +197,56 @@ export async function POST(request: NextRequest) {
     let usedKnowledge = false
 
     if (shouldUseKnowledge) {
-      // ユーザーのドキュメントを取得
+      // ユーザーのドキュメントを取得（ユーザー自身がアップロードしたもののみ）
       const { data: userDocuments } = await supabase
         .from('uploaded_documents')
         .select('id, original_filename')
+        .eq('user_id', user.id)
         .eq('processed', true)
 
       if (userDocuments && userDocuments.length > 0) {
         const userDocumentIds = userDocuments.map(doc => doc.id)
 
-        // すべてのチャンクを取得（シンプルな実装）
-        const { data: relevantChunks } = await supabase
-          .from('document_chunks')
-          .select('content, document_id')
-          .in('document_id', userDocumentIds)
-          .limit(10)
+        // キーワードを抽出（簡易的に単語分割）
+        const keywords = content
+          .replace(/[、。？！「」『』（）\[\]【】・]/g, ' ')
+          .split(/\s+/)
+          .filter((word: string) => word.length >= 2)
+          .slice(0, 10) // 最大10キーワード
 
-        if (relevantChunks && relevantChunks.length > 0) {
+        let relevantChunks: any[] = []
+
+        // キーワードマッチングで関連チャンクを検索
+        if (keywords.length > 0) {
+          // 各キーワードでOR検索
+          const searchConditions = keywords.map((kw: string) => `content.ilike.%${kw}%`).join(',')
+
+          const { data: matchedChunks } = await supabase
+            .from('document_chunks')
+            .select('content, document_id')
+            .in('document_id', userDocumentIds)
+            .or(searchConditions)
+            .limit(15)
+
+          if (matchedChunks && matchedChunks.length > 0) {
+            relevantChunks = matchedChunks
+          }
+        }
+
+        // キーワードマッチングで見つからない場合は、全文から取得
+        if (relevantChunks.length === 0) {
+          const { data: allChunks } = await supabase
+            .from('document_chunks')
+            .select('content, document_id')
+            .in('document_id', userDocumentIds)
+            .limit(10)
+
+          if (allChunks) {
+            relevantChunks = allChunks
+          }
+        }
+
+        if (relevantChunks.length > 0) {
           usedKnowledge = true
           knowledgeContext = '\n\n【参照ドキュメント】\n以下のドキュメントから関連情報を見つけました：\n\n'
 
@@ -228,7 +261,7 @@ export async function POST(request: NextRequest) {
             knowledgeContext += `${chunk.content}\n\n`
           })
 
-          knowledgeContext += '\n上記のドキュメント内容を参考に、質問に回答してください。'
+          knowledgeContext += '\n上記のドキュメント内容を参考に、質問に回答してください。ドキュメントに記載がない情報については、その旨を伝えてください。'
         }
       }
     }

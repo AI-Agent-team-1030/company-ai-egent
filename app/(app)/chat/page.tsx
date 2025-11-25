@@ -737,12 +737,6 @@ function ChatContent() {
     }
   }
 
-  const faqQuestions = [
-    '新規顧客へのアプローチ方法を教えて',
-    'SaaS業界の採用について',
-    'カスタマーサポートのテンプレート',
-    '営業のノウハウを教えて',
-  ]
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -1030,23 +1024,6 @@ function ChatContent() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Questions */}
-      {messages.length <= 1 && (
-        <div className="px-6 pb-4 bg-gray-50">
-          <p className="text-sm text-gray-600 mb-3 font-medium">💬 よく相談される質問</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {faqQuestions.map((question, index) => (
-              <button
-                key={index}
-                onClick={() => handleSend(question)}
-                className="p-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-left"
-              >
-                <div className="text-sm font-medium text-gray-900 line-clamp-2">{question}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 回答切り替えボタン（画面下部固定） */}
       {currentAiMessageId && (() => {
