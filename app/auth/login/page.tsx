@@ -89,7 +89,10 @@ export default function LoginPage() {
         return
       }
 
-      // 3. ユーザーのプロフィールを直接取得
+      // 3. 認証状態が反映されるまで少し待機
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // 4. ユーザーのプロフィールを直接取得
       const profileDoc = await getDoc(doc(db, 'profiles', authData.user.uid))
 
       if (!profileDoc.exists()) {
