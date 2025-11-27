@@ -235,24 +235,43 @@ export default function SettingsPage() {
     }
   }
 
-  // 会社のGoogleドライブに接続（リダイレクト方式）
+  // 会社のGoogleドライブに接続（ポップアップ方式）
   const handleConnectCompanyDrive = async () => {
     if (!profile?.companyId || !user) return
 
     setIsConnectingDrive(true)
     setDriveError(null)
+    setDriveSuccess(null)
+
     try {
-      // リダイレクト方式でGoogle認証を開始
-      // ユーザーはGoogleの認証画面にリダイレクトされ、認証後にこのページに戻ってくる
-      const { error } = await linkGoogleDrive()
+      const { accessToken, error } = await linkGoogleDrive()
+
       if (error) {
         setDriveError(error.message)
         setIsConnectingDrive(false)
+        return
       }
-      // リダイレクトが開始されるので、ここでは何もしない
-      // 結果はページ読み込み時の useEffect で処理される
+
+      if (accessToken) {
+        // 会社レベルで保存
+        await saveCompanyDriveConnection(profile.companyId, {
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+        })
+        setCompanyDriveConnection({
+          isConnected: true,
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+          connectedAt: new Date(),
+        })
+        setDriveSuccess('Googleドライブに接続しました！')
+        setTimeout(() => setDriveSuccess(null), 5000)
+      }
     } catch (err: any) {
       setDriveError(err.message || 'Googleドライブへの接続に失敗しました')
+    } finally {
       setIsConnectingDrive(false)
     }
   }

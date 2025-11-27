@@ -99,7 +99,7 @@ function getErrorMessage(errorCode: string): string {
   }
 }
 
-// Googleドライブ接続をリダイレクト方式で開始
+// Googleドライブ接続（ポップアップ方式）
 export async function linkGoogleDrive(): Promise<{
   accessToken: string | null
   error: any
@@ -110,49 +110,33 @@ export async function linkGoogleDrive(): Promise<{
   }
 
   try {
-    // リダイレクト前にフラグを設定
-    sessionStorage.setItem('google_drive_redirect_pending', 'true')
-    // リダイレクト方式でGoogle認証を開始
-    await signInWithRedirect(auth, googleProvider)
-    // リダイレクトするので、ここには到達しない
-    return { accessToken: null, error: null }
+    // ポップアップ方式でGoogle認証
+    const result = await signInWithPopup(auth, googleProvider)
+    const credential = GoogleAuthProvider.credentialFromResult(result)
+    const accessToken = credential?.accessToken || null
+
+    if (accessToken) {
+      sessionStorage.setItem('google_drive_token', accessToken)
+    }
+
+    return { accessToken, error: null }
   } catch (error: any) {
-    sessionStorage.removeItem('google_drive_redirect_pending')
+    console.error('[Drive Auth] Error:', error.code, error.message)
     return { accessToken: null, error: { message: getGoogleErrorMessage(error.code) } }
   }
 }
 
-// リダイレクト結果を処理
+// リダイレクト結果を処理（未使用だが互換性のため残す）
 export async function handleGoogleDriveRedirect(): Promise<{
   accessToken: string | null
   error: any
 }> {
-  try {
-    const result = await getRedirectResult(auth)
-
-    if (result) {
-      const credential = GoogleAuthProvider.credentialFromResult(result)
-      const accessToken = credential?.accessToken || null
-
-      if (accessToken) {
-        sessionStorage.setItem('google_drive_token', accessToken)
-        sessionStorage.removeItem('google_drive_redirect_pending')
-      }
-
-      return { accessToken, error: null }
-    }
-
-    return { accessToken: null, error: null }
-  } catch (error: any) {
-    sessionStorage.removeItem('google_drive_redirect_pending')
-    return { accessToken: null, error: { message: getGoogleErrorMessage(error.code) } }
-  }
+  return { accessToken: null, error: null }
 }
 
-// リダイレクト待ちかどうか確認
+// リダイレクト待ちかどうか確認（未使用だが互換性のため残す）
 export function isGoogleDriveRedirectPending(): boolean {
-  if (typeof window === 'undefined') return false
-  return sessionStorage.getItem('google_drive_redirect_pending') === 'true'
+  return false
 }
 
 // Googleドライブのアクセストークンを取得
