@@ -802,23 +802,18 @@ function ChatContent() {
                   )}
                 </div>
 
-                {/* Citations - タイピング完了後にアニメーション表示 */}
+                {/* Citations - タイピング完了後に一気に表示 */}
                 {message.citations && message.citations.length > 0 && (message.showCitations !== false) && (
-                  <div className={`mt-3 space-y-2 ${message.showCitations === true ? 'animate-fadeIn' : ''}`}>
+                  <div className={`mt-3 space-y-2 ${message.showCitations === true ? 'animate-slideUp' : ''}`}>
                     <p className="text-xs text-gray-600 font-bold mb-2">📚 参照した情報源</p>
                     {message.citations.map((citation, i) => (
                       <div
                         key={i}
-                        className={`border rounded-lg p-3 transform transition-all duration-300 ${
+                        className={`border rounded-lg p-3 ${
                           citation.source === 'drive'
                             ? 'bg-blue-50 border-blue-200'
                             : 'bg-green-50 border-green-200'
                         }`}
-                        style={{
-                          animationDelay: message.showCitations === true ? `${i * 150}ms` : '0ms',
-                          animation: message.showCitations === true ? 'slideUp 0.3s ease-out forwards' : 'none',
-                          opacity: message.showCitations === true ? 0 : 1
-                        }}
                       >
                         <div className="flex items-start gap-2">
                           <span className="text-lg flex-shrink-0">
