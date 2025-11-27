@@ -6,7 +6,8 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
-  linkWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   OAuthCredential,
 } from 'firebase/auth'
 import { auth } from './firebase'
@@ -14,6 +15,9 @@ import { auth } from './firebase'
 // Googleプロバイダー（Driveスコープ付き）
 const googleProvider = new GoogleAuthProvider()
 googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly')
+googleProvider.setCustomParameters({
+  prompt: 'consent'
+})
 
 // サインアップ
 export async function signUp(email: string, password: string) {
@@ -95,7 +99,7 @@ function getErrorMessage(errorCode: string): string {
   }
 }
 
-// Googleアカウントを連携（既存ユーザーにDriveアクセスを追加）
+// Googleドライブ接続をリダイレクト方式で開始
 export async function linkGoogleDrive(): Promise<{
   accessToken: string | null
   error: any
@@ -106,43 +110,49 @@ export async function linkGoogleDrive(): Promise<{
   }
 
   try {
-    const result = await linkWithPopup(currentUser, googleProvider)
-    const credential = GoogleAuthProvider.credentialFromResult(result)
-    const accessToken = credential?.accessToken || null
-
-    if (accessToken) {
-      sessionStorage.setItem('google_drive_token', accessToken)
-    }
-
-    return { accessToken, error: null }
+    // リダイレクト前にフラグを設定
+    sessionStorage.setItem('google_drive_redirect_pending', 'true')
+    // リダイレクト方式でGoogle認証を開始
+    await signInWithRedirect(auth, googleProvider)
+    // リダイレクトするので、ここには到達しない
+    return { accessToken: null, error: null }
   } catch (error: any) {
-    // 既にリンク済みの場合は再認証
-    if (error.code === 'auth/credential-already-in-use' ||
-        error.code === 'auth/provider-already-linked') {
-      return reauthenticateWithGoogle()
-    }
+    sessionStorage.removeItem('google_drive_redirect_pending')
     return { accessToken: null, error: { message: getGoogleErrorMessage(error.code) } }
   }
 }
 
-// Google再認証（トークン更新用）
-export async function reauthenticateWithGoogle(): Promise<{
+// リダイレクト結果を処理
+export async function handleGoogleDriveRedirect(): Promise<{
   accessToken: string | null
   error: any
 }> {
   try {
-    const result = await signInWithPopup(auth, googleProvider)
-    const credential = GoogleAuthProvider.credentialFromResult(result)
-    const accessToken = credential?.accessToken || null
+    const result = await getRedirectResult(auth)
 
-    if (accessToken) {
-      sessionStorage.setItem('google_drive_token', accessToken)
+    if (result) {
+      const credential = GoogleAuthProvider.credentialFromResult(result)
+      const accessToken = credential?.accessToken || null
+
+      if (accessToken) {
+        sessionStorage.setItem('google_drive_token', accessToken)
+        sessionStorage.removeItem('google_drive_redirect_pending')
+      }
+
+      return { accessToken, error: null }
     }
 
-    return { accessToken, error: null }
+    return { accessToken: null, error: null }
   } catch (error: any) {
+    sessionStorage.removeItem('google_drive_redirect_pending')
     return { accessToken: null, error: { message: getGoogleErrorMessage(error.code) } }
   }
+}
+
+// リダイレクト待ちかどうか確認
+export function isGoogleDriveRedirectPending(): boolean {
+  if (typeof window === 'undefined') return false
+  return sessionStorage.getItem('google_drive_redirect_pending') === 'true'
 }
 
 // Googleドライブのアクセストークンを取得

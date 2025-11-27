@@ -14,7 +14,7 @@ import {
   LinkIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline'
-import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken } from '@/lib/firebase-auth'
+import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken, handleGoogleDriveRedirect, isGoogleDriveRedirectPending } from '@/lib/firebase-auth'
 import {
   getCompanyDriveConnection,
   saveCompanyDriveConnection,
@@ -70,6 +70,42 @@ export default function SettingsPage() {
       fetchApiKeys()
     }
   }, [user, loading])
+
+  // Googleドライブのリダイレクト結果を処理
+  useEffect(() => {
+    const processRedirectResult = async () => {
+      if (!profile?.companyId || !user) return
+
+      try {
+        const { accessToken, error } = await handleGoogleDriveRedirect()
+
+        if (error) {
+          setDriveError(error.message)
+          return
+        }
+
+        if (accessToken) {
+          // リダイレクトから戻ってきた場合、会社レベルで保存
+          await saveCompanyDriveConnection(profile.companyId, {
+            connectedBy: user.uid,
+            connectedByEmail: user.email || undefined,
+            accessToken,
+          })
+          setCompanyDriveConnection({
+            isConnected: true,
+            connectedBy: user.uid,
+            connectedByEmail: user.email || undefined,
+            accessToken,
+            connectedAt: new Date(),
+          })
+        }
+      } catch (err: any) {
+        console.error('Failed to process redirect result:', err)
+      }
+    }
+
+    processRedirectResult()
+  }, [profile?.companyId, user])
 
   // 会社のGoogleドライブ接続状態を確認
   useEffect(() => {
@@ -173,34 +209,24 @@ export default function SettingsPage() {
     }
   }
 
-  // 会社のGoogleドライブに接続
+  // 会社のGoogleドライブに接続（リダイレクト方式）
   const handleConnectCompanyDrive = async () => {
     if (!profile?.companyId || !user) return
 
     setIsConnectingDrive(true)
     setDriveError(null)
     try {
-      const { accessToken, error } = await linkGoogleDrive()
+      // リダイレクト方式でGoogle認証を開始
+      // ユーザーはGoogleの認証画面にリダイレクトされ、認証後にこのページに戻ってくる
+      const { error } = await linkGoogleDrive()
       if (error) {
         setDriveError(error.message)
-      } else if (accessToken) {
-        // 会社レベルで保存
-        await saveCompanyDriveConnection(profile.companyId, {
-          connectedBy: user.uid,
-          connectedByEmail: user.email || undefined,
-          accessToken,
-        })
-        setCompanyDriveConnection({
-          isConnected: true,
-          connectedBy: user.uid,
-          connectedByEmail: user.email || undefined,
-          accessToken,
-          connectedAt: new Date(),
-        })
+        setIsConnectingDrive(false)
       }
+      // リダイレクトが開始されるので、ここでは何もしない
+      // 結果はページ読み込み時の useEffect で処理される
     } catch (err: any) {
       setDriveError(err.message || 'Googleドライブへの接続に失敗しました')
-    } finally {
       setIsConnectingDrive(false)
     }
   }
