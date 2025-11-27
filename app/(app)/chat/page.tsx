@@ -314,7 +314,8 @@ function ChatContent() {
                 citations.push({
                   title: result.name,
                   text: result.content.slice(0, 300),
-                  uri: result.webViewLink || 'Google Drive',
+                  uri: result.webViewLink || '',
+                  source: 'drive',
                 })
               })
             }
@@ -777,11 +778,41 @@ function ChatContent() {
                 {/* Citations */}
                 {message.citations && message.citations.length > 0 && (
                   <div className="mt-3 space-y-2">
-                    <p className="text-xs text-gray-600 font-bold mb-2">参照した情報</p>
+                    <p className="text-xs text-gray-600 font-bold mb-2">📚 参照した情報源</p>
                     {message.citations.map((citation, i) => (
-                      <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                        <h4 className="font-bold text-gray-900 text-sm">{citation.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{citation.text.slice(0, 150)}...</p>
+                      <div key={i} className={`border rounded-lg p-3 ${
+                        citation.source === 'drive'
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-green-50 border-green-200'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg flex-shrink-0">
+                            {citation.source === 'drive' ? '📁' : '📄'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                citation.source === 'drive'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {citation.source === 'drive' ? 'Googleドライブ' : '社内ナレッジ'}
+                              </span>
+                              {citation.uri && (
+                                <a
+                                  href={citation.uri}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  開く ↗
+                                </a>
+                              )}
+                            </div>
+                            <h4 className="font-bold text-gray-900 text-sm mt-1">{citation.title}</h4>
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{citation.text.slice(0, 200)}...</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

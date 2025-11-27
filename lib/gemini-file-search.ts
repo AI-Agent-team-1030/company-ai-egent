@@ -120,6 +120,7 @@ export async function queryWithFileSearch(
             title: chunk.retrievedContext.title || 'Unknown',
             uri: chunk.retrievedContext.uri || '',
             text: chunk.retrievedContext.text || '',
+            source: 'knowledge',
           })
         }
       }
@@ -216,6 +217,7 @@ export interface Citation {
   title: string
   uri: string
   text: string
+  source?: 'drive' | 'knowledge' // ソースの種類
 }
 
 export interface ChatMessage {
