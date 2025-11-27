@@ -61,6 +61,7 @@ function ChatContent() {
   const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // APIキーを取得
   useEffect(() => {
@@ -117,10 +118,17 @@ function ChatContent() {
     timestamp: new Date(),
   })
 
+  const resetTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px'
+    }
+  }
+
   const resetChat = () => {
     setConversationId(null)
     setMessages([createWelcomeMessage()])
     setInput('')
+    resetTextareaHeight()
     setIsProcessing(false)
     setError(null)
   }
@@ -256,6 +264,7 @@ function ChatContent() {
 
     setMessages(prev => [...prev, tempUserMessage])
     setInput('')
+    resetTextareaHeight()
     setIsProcessing(true)
     setError(null)
 
@@ -873,15 +882,30 @@ function ChatContent() {
 
       {/* Input */}
       <div className="border-t border-gray-200 p-3 md:p-6 bg-white">
-        <div className="flex gap-2 md:gap-3">
-          <input
-            type="text"
+        <div className="flex gap-2 md:gap-3 items-end">
+          <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => { if (e.key === 'Enter') handleSend() }}
-            placeholder="相談内容を入力..."
+            onChange={(e) => {
+              setInput(e.target.value)
+              // 自動リサイズ
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px'
+            }}
+            onKeyDown={(e) => {
+              // Enterで送信、Shift+Enterで改行
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (input.trim() && !isProcessing) {
+                  handleSend()
+                }
+              }
+            }}
+            placeholder="相談内容を入力... (Shift+Enterで改行)"
             disabled={isProcessing}
-            className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 text-sm md:text-base"
+            rows={1}
+            className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 text-sm md:text-base resize-none overflow-y-auto"
+            style={{ minHeight: '44px', maxHeight: '200px' }}
           />
           {isTyping ? (
             <button onClick={handleStopTyping} className="px-3 md:px-6 py-2.5 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">
