@@ -55,7 +55,9 @@ export default function SettingsPage() {
   const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
   const [isConnectingDrive, setIsConnectingDrive] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
+  const [driveSuccess, setDriveSuccess] = useState<string | null>(null)
   const [isLoadingDriveStatus, setIsLoadingDriveStatus] = useState(true)
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(false)
 
   // プロフィールからユーザー名を取得
   useEffect(() => {
@@ -76,15 +78,30 @@ export default function SettingsPage() {
     const processRedirectResult = async () => {
       if (!profile?.companyId || !user) return
 
+      // リダイレクト待機中かチェック
+      const isPending = isGoogleDriveRedirectPending()
+      console.log('[Drive] Checking redirect result, isPending:', isPending)
+
+      if (!isPending) {
+        return
+      }
+
+      setIsProcessingRedirect(true)
+      setDriveError(null)
+
       try {
+        console.log('[Drive] Processing redirect result...')
         const { accessToken, error } = await handleGoogleDriveRedirect()
+        console.log('[Drive] Redirect result:', { hasToken: !!accessToken, error })
 
         if (error) {
           setDriveError(error.message)
+          setIsProcessingRedirect(false)
           return
         }
 
         if (accessToken) {
+          console.log('[Drive] Saving connection to Firestore...')
           // リダイレクトから戻ってきた場合、会社レベルで保存
           await saveCompanyDriveConnection(profile.companyId, {
             connectedBy: user.uid,
@@ -98,9 +115,18 @@ export default function SettingsPage() {
             accessToken,
             connectedAt: new Date(),
           })
+          setDriveSuccess('Googleドライブに接続しました！')
+          setTimeout(() => setDriveSuccess(null), 5000)
+          console.log('[Drive] Connection saved successfully!')
+        } else {
+          console.log('[Drive] No access token received')
+          setDriveError('アクセストークンの取得に失敗しました。もう一度お試しください。')
         }
       } catch (err: any) {
-        console.error('Failed to process redirect result:', err)
+        console.error('[Drive] Failed to process redirect result:', err)
+        setDriveError(err.message || 'Google認証の処理中にエラーが発生しました')
+      } finally {
+        setIsProcessingRedirect(false)
       }
     }
 
@@ -434,6 +460,18 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </div>
+            ) : isProcessingRedirect ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="w-6 h-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-800">Google認証を処理中...</p>
+                    <p className="text-sm text-blue-600">
+                      しばらくお待ちください
+                    </p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-gray-600">
@@ -448,6 +486,13 @@ export default function SettingsPage() {
                     <li>同じ会社のメンバー全員が利用可能</li>
                   </ul>
                 </div>
+
+                {driveSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600">
+                    <CheckCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{driveSuccess}</span>
+                  </div>
+                )}
 
                 {driveError && (
                   <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
