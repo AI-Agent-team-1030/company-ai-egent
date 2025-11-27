@@ -1,22 +1,26 @@
-# 法人AIエージェントシステム - MVP版
+# 法人AIエージェントシステム
 
-Next.js 14で構築された、企業独自の社内ポータルサイトです。
+Next.js 14で構築された、マルチテナント対応の社内AIポータルサイトです。
 
-**Version 1.0 - MVP版**
+**Version 2.0 - Firebase + Gemini AI統合版**
 
-社員がナレッジを蓄積し、AIが社内情報に基づいて質問に答える、シンプルで使いやすい社内ポータルサイトです。
+企業ごとにナレッジを蓄積し、Gemini AIが社内情報に基づいて質問に答える、シンプルで使いやすい社内ポータルサイトです。
 
-## 🎯 コンセプト
+## コンセプト
 
-- 社員が簡単にナレッジを登録できる
-- AIが社内情報を参照して質問に回答
+- 企業ごとに独立したナレッジベース
+- Gemini AI File Searchによる高精度なドキュメント検索
 - シンプルで使いやすいインターフェース
 
-## 🚀 クイックスタート
+## クイックスタート
 
 ```bash
 # 依存関係のインストール
 npm install
+
+# 環境変数の設定
+cp .env.example .env
+# .envにFirebaseとGemini APIの設定を記入
 
 # 開発サーバーの起動
 npm run dev
@@ -24,40 +28,50 @@ npm run dev
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
 
-## 📚 ドキュメント
+## 環境変数
 
-- **[セットアップガイド](./docs/SETUP.md)** - 初期セットアップ手順
-- **[バージョン管理](./docs/VERSIONS.md)** - バージョンごとの機能と復元方法
-- **[トラブルシューティング](./docs/TROUBLESHOOTING.md)** - よくある問題と解決方法
+`.env`ファイルに以下を設定：
 
-## ✨ 搭載機能
+```env
+# Firebase設定
+NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 
-### 1. AIチャット 💬
+# Gemini AI設定
+NEXT_PUBLIC_GEMINI_API_KEY=your-gemini-api-key
+```
+
+## 搭載機能
+
+### 1. AIチャット
 社内のことを質問したら答えてくれる
 
-- ナレッジベースを参照した回答生成（RAG）
-- 会話履歴の保存と検索
-- フォルダー別のチャット整理
-- Claude APIによるリアルタイム対話
+- Gemini 2.5 Proによる高品質な回答生成
+- ナレッジ検索トグルでFile Search ON/OFF切り替え
+- 会話履歴の保存と管理
+- 企業ごとに独立したチャット履歴
 
-### 2. ナレッジベース 📚
+### 2. ナレッジボックス
 社員がナレッジを上げて共有
 
-- 組織の知識を蓄積・共有
-- フォルダー階層での整理
-- ドキュメントのアップロード（PDF, Word, Excel, CSV, 画像）
-- 全文検索機能
-- AIチャットでの参照（RAG統合）
+- Gemini AI File Searchによるドキュメントインデックス化
+- フォルダーによる整理
+- PDF, Word, Excel, CSV, テキストファイル対応
+- 企業ごとに独立したナレッジベース
+- アップロード後、チャットで自動的に検索可能
 
-### 3. 設定 ⚙️
-ユーザー設定とAPIキー管理
+### 3. 設定
+ユーザー設定とAIモデル管理
 
 - プロフィール管理
-- ユーザー名の設定
-- Claude APIキーの管理
+- AIモデルの選択（企業単位で設定可能）
 - 通知設定
 
-## 🛠️ 技術スタック
+## 技術スタック
 
 ### フロントエンド
 - **フレームワーク**: Next.js 14 (App Router)
@@ -66,65 +80,137 @@ npm run dev
 - **アニメーション**: Framer Motion
 - **アイコン**: Heroicons
 - **状態管理**: Zustand, React Context
-- **Markdown**: react-markdown, remark-gfm
 
 ### バックエンド
-- **API**: Next.js API Routes
-- **データベース**: Supabase (PostgreSQL)
-- **認証**: Supabase Auth
-- **ストレージ**: Supabase Storage
-- **AI**: Claude API (Anthropic)
-
-### ファイル処理
-- **PDF**: pdf-parse-fork
-- **Word**: mammoth
-- **Excel**: xlsx, officeparser
-- **CSV**: csv-parse
-- **OCR**: tesseract.js
+- **認証**: Firebase Authentication
+- **データベース**: Cloud Firestore
+- **AI**: Gemini 2.5 Pro (Google AI)
+- **ドキュメント検索**: Gemini File Search API
 
 ### セキュリティ
-- Row Level Security (RLS)
-- APIキーの暗号化保存
-- HTTPS通信
+- Firebase Security Rules
+- 企業ごとのデータ分離（companyId）
+- Row Level Security相当の実装
 
-## 💡 使い方
+## Firestoreデータ構造
 
-1. **社員がナレッジベースに情報を登録**
-   - PDF、Word、Excelなどのドキュメントをアップロード
-   - またはテキストで直接入力
+```
+profiles/{userId}
+  - companyId: string
+  - companyName: string
+  - email: string
+  - role: string
 
-2. **他の社員がAIチャットで質問**
-   - 「〇〇の手順は？」「△△についての資料は？」など自然に質問
+companies/{companyId}
+  - name: string
+  - aiSettings: object
 
-3. **AIがナレッジベースを参照して回答**
-   - 関連するナレッジを自動検索
-   - 分かりやすく回答を生成
+conversations/{conversationId}
+  - userId: string
+  - title: string
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  └── messages/{messageId}
+      - role: 'user' | 'assistant'
+      - content: string
+      - citations: array
+      - createdAt: timestamp
+
+documents/{documentId}
+  - companyId: string
+  - userId: string
+  - fileName: string
+  - originalFileName: string
+  - geminiFileName: string
+  - folderId: string | null
+  - createdAt: timestamp
+
+folders/{folderId}
+  - companyId: string
+  - userId: string
+  - name: string
+  - parentFolderId: string | null
+  - createdAt: timestamp
+
+fileSearchStores/{storeId}
+  - companyId: string
+  - userId: string
+  - storeName: string
+  - displayName: string
+  - createdAt: timestamp
+```
+
+## 使い方
+
+1. **企業名・メール・パスワードでログイン**
+   - 同じ企業名のユーザーはナレッジを共有
+
+2. **ナレッジボックスにドキュメントをアップロード**
+   - Gemini AIが自動でインデックス化
+
+3. **チャットでナレッジ検索をONにして質問**
+   - AIが社内ドキュメントを参照して回答
 
 4. **必要に応じて新しいナレッジを追加**
-   - よく聞かれる質問はナレッジ化
    - 組織の知識が蓄積されていく
 
-## 🎯 ターゲット
+## Firestore Security Rules
 
-- 社内情報を効率的に共有したい企業
-- 社員が簡単にナレッジを蓄積・検索できる環境を作りたい組織
-- AIを活用した社内Q&Aシステムを導入したい企業
+Firebase Consoleで以下のルールを設定：
 
-## 🚀 今後の展開
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 認証済みユーザーのみアクセス可能
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-### Version 2.0 - エンタープライズ版（予定）
-- ホーム/ダッシュボード（組織の健康状態可視化）
-- ドキュメント管理
-- 組織図
-- 通知機能
+    // ユーザー自身のプロフィールのみ
+    match /profiles/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
 
-### Version 3.0 - AI自動化版（予定）
-- タスク管理（ゴール + タスク統合）
-- AIエージェント管理
-- 業務自動化機能
+    // 会社情報
+    match /companies/{companyId} {
+      allow read, update: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
 
-詳細は [VERSIONS.md](./docs/VERSIONS.md) を参照してください。
+    // 会話
+    match /conversations/{conversationId} {
+      allow read, write: if isAuthenticated();
+      match /messages/{messageId} {
+        allow read, write, delete: if isAuthenticated();
+      }
+    }
 
-## 📝 ライセンス
+    // ドキュメント
+    match /documents/{documentId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // フォルダ
+    match /folders/{folderId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // File Search Stores
+    match /fileSearchStores/{storeId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
+```
+
+## デプロイ（Vercel）
+
+1. GitHubにプッシュ
+2. Vercelでプロジェクトをインポート
+3. 環境変数を設定
+4. デプロイ
+
+## ライセンス
 
 MIT
