@@ -12,7 +12,11 @@ import {
   FolderIcon,
   FolderOpenIcon,
   PencilIcon,
+  CloudIcon,
 } from '@heroicons/react/24/outline'
+import GoogleDrivePicker from '@/components/ui/GoogleDrivePicker'
+import { DriveFile, downloadGoogleFile } from '@/lib/google-drive'
+import { getGoogleDriveToken } from '@/lib/firebase-auth'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   saveFileSearchStore,
@@ -78,6 +82,16 @@ export default function KnowledgePage() {
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null)
   const [folderName, setFolderName] = useState('')
+
+  // Googleドライブ
+  const [showDrivePicker, setShowDrivePicker] = useState(false)
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+
+  // Googleドライブ接続状態を確認
+  useEffect(() => {
+    const token = getGoogleDriveToken()
+    setIsGoogleDriveConnected(!!token)
+  }, [])
 
   useEffect(() => {
     if (profile?.companyId) {
@@ -178,6 +192,120 @@ export default function KnowledgePage() {
     } catch (err: any) {
       setError(err.message)
     }
+  }
+
+  // Googleドライブからインポート
+  const handleDriveImport = async (files: DriveFile[]) => {
+    setShowDrivePicker(false)
+    if (!user || !profile?.companyId || files.length === 0) return
+
+    setUploading(true)
+    setError(null)
+
+    for (const driveFile of files) {
+      const tempId = `drive-${driveFile.id}-${Date.now()}`
+
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: {
+          status: 'uploading',
+          message: `${driveFile.name} をダウンロード中...`,
+          progress: 10,
+        },
+      }))
+
+      try {
+        const apiKey = BUILT_IN_GEMINI_API_KEY
+        if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
+
+        // Googleドライブからダウンロード
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: `${driveFile.name} をダウンロード中...`, progress: 20 },
+        }))
+
+        const { blob, fileName } = await downloadGoogleFile(driveFile)
+
+        // ストアが存在しない場合は作成
+        let storeName = stores[0]?.storeName
+        if (!storeName) {
+          setProcessingStatus((prev) => ({
+            ...prev,
+            [tempId]: { status: 'processing', message: 'ナレッジストアを作成中...', progress: 30 },
+          }))
+
+          const storeResult = await createFileSearchStore(apiKey, `${profile.companyName || 'Company'} Knowledge`)
+          if (storeResult.error) throw new Error(storeResult.error)
+          storeName = storeResult.storeName
+
+          await saveFileSearchStore(user.uid, profile.companyId, storeName, `${profile.companyName || 'Company'} Knowledge`)
+          setStores(prev => [...prev, { id: Date.now().toString(), storeName, displayName: `${profile.companyName || 'Company'} Knowledge` }])
+        }
+
+        // ファイルをGeminiにアップロード
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: `${fileName} をGemini AIにアップロード中...`, progress: 50 },
+        }))
+
+        const fileBuffer = await blob.arrayBuffer()
+        const uploadResult = await uploadFile(apiKey, new Uint8Array(fileBuffer), fileName, blob.type || 'application/octet-stream')
+        if (uploadResult.error) throw new Error(uploadResult.error)
+
+        // ストアにインポート
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: 'インデックス作成中...', progress: 70 },
+        }))
+
+        const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+        if (importResult.error) throw new Error(importResult.error)
+
+        // Firestoreに保存
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: '保存中...', progress: 90 },
+        }))
+
+        await saveUploadedDocument(
+          user.uid,
+          profile.companyId,
+          fileName,
+          driveFile.name,
+          uploadResult.fileName,
+          storeName,
+          selectedFolderId
+        )
+
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'completed', message: `${driveFile.name} 完了！`, progress: 100 },
+        }))
+
+        setTimeout(() => {
+          setProcessingStatus((prev) => {
+            const { [tempId]: _, ...rest } = prev
+            return rest
+          })
+        }, 3000)
+      } catch (err: any) {
+        setError(err.message)
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'error', message: `エラー: ${err.message}`, progress: 0 },
+        }))
+
+        setTimeout(() => {
+          setProcessingStatus((prev) => {
+            const { [tempId]: _, ...rest } = prev
+            return rest
+          })
+        }, 5000)
+      }
+    }
+
+    await fetchData()
+    setUploading(false)
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,18 +439,52 @@ export default function KnowledgePage() {
             ドキュメントをアップロードすると、チャットで自動検索されます
           </p>
         </div>
-        <label className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer text-sm md:text-base w-full sm:w-auto">
-          <CloudArrowUpIcon className="w-5 h-5" />
-          {uploading ? 'アップロード中...' : 'ドキュメント追加'}
-          <input
-            type="file"
-            className="hidden"
-            accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.gif,.webp"
-            onChange={handleFileUpload}
-            disabled={uploading}
-          />
-        </label>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {/* Googleドライブからインポート */}
+          {isGoogleDriveConnected && (
+            <button
+              onClick={() => setShowDrivePicker(true)}
+              disabled={uploading}
+              className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm md:text-base w-full sm:w-auto disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              <CloudIcon className="w-5 h-5" />
+              Googleドライブから
+            </button>
+          )}
+
+          {/* 直接アップロード */}
+          <label className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer text-sm md:text-base w-full sm:w-auto">
+            <CloudArrowUpIcon className="w-5 h-5" />
+            {uploading ? 'アップロード中...' : 'ドキュメント追加'}
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.gif,.webp"
+              onChange={handleFileUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
       </div>
+
+      {/* Googleドライブ未接続の案内 */}
+      {!isGoogleDriveConnected && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <CloudIcon className="w-6 h-6 text-blue-600 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-blue-800">Googleドライブ連携</p>
+              <p className="text-sm text-blue-600">設定からGoogleドライブを接続すると、ドライブからファイルを直接インポートできます</p>
+            </div>
+          </div>
+          <a
+            href="/settings"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap"
+          >
+            設定を開く
+          </a>
+        </div>
+      )}
 
       {/* Processing Status */}
       {Object.keys(processingStatus).length > 0 && (
@@ -560,6 +722,17 @@ export default function KnowledgePage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Google Drive Picker */}
+      <AnimatePresence>
+        {showDrivePicker && (
+          <GoogleDrivePicker
+            onSelect={handleDriveImport}
+            onClose={() => setShowDrivePicker(false)}
+            multiSelect={true}
+          />
         )}
       </AnimatePresence>
     </div>

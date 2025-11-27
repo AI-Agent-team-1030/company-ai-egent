@@ -10,7 +10,11 @@ import {
   KeyIcon,
   CheckCircleIcon,
   ChevronRightIcon,
+  CloudIcon,
+  LinkIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline'
+import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken } from '@/lib/firebase-auth'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -42,6 +46,9 @@ export default function SettingsPage() {
   const [isSavingKey, setIsSavingKey] = useState(false)
   const [showNameSuccess, setShowNameSuccess] = useState(false)
   const [showKeySuccess, setShowKeySuccess] = useState(false)
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+  const [isConnectingDrive, setIsConnectingDrive] = useState(false)
+  const [driveError, setDriveError] = useState<string | null>(null)
 
   // プロフィールからユーザー名を取得
   useEffect(() => {
@@ -56,6 +63,12 @@ export default function SettingsPage() {
       fetchApiKeys()
     }
   }, [user, loading])
+
+  // Googleドライブ接続状態を確認
+  useEffect(() => {
+    const token = getGoogleDriveToken()
+    setIsGoogleDriveConnected(!!token)
+  }, [])
 
   const fetchApiKeys = async () => {
     if (!user) return
@@ -138,6 +151,30 @@ export default function SettingsPage() {
     } finally {
       setIsSavingKey(false)
     }
+  }
+
+  // Googleドライブに接続
+  const handleConnectGoogleDrive = async () => {
+    setIsConnectingDrive(true)
+    setDriveError(null)
+    try {
+      const { accessToken, error } = await linkGoogleDrive()
+      if (error) {
+        setDriveError(error.message)
+      } else if (accessToken) {
+        setIsGoogleDriveConnected(true)
+      }
+    } catch (err: any) {
+      setDriveError(err.message || 'Googleドライブへの接続に失敗しました')
+    } finally {
+      setIsConnectingDrive(false)
+    }
+  }
+
+  // Googleドライブから切断
+  const handleDisconnectGoogleDrive = () => {
+    clearGoogleDriveToken()
+    setIsGoogleDriveConnected(false)
   }
 
   // ローディング中の表示
@@ -264,11 +301,92 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* AI API Keys Section */}
+        {/* Google Drive Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+        >
+          <div className="border-b border-gray-200 p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CloudIcon className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900">Googleドライブ連携</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Googleドライブからナレッジを取り込むための連携設定
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {isGoogleDriveConnected ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                  <div className="flex-1">
+                    <p className="font-medium text-green-800">Googleドライブに接続中</p>
+                    <p className="text-sm text-green-600">ナレッジボックスからドライブのファイルをインポートできます</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleDisconnectGoogleDrive}
+                  className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                >
+                  接続を解除
+                </button>
+                <p className="text-xs text-gray-500">
+                  ※ 接続はブラウザを閉じるまで有効です。再ログイン時は再接続が必要です。
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Googleドライブに接続すると、ドライブ内のファイルをナレッジボックスにインポートできます。
+                </p>
+
+                {driveError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                    <XCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{driveError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleConnectGoogleDrive}
+                  disabled={isConnectingDrive}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isConnectingDrive ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      接続中...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-5 h-5" />
+                      Googleドライブに接続
+                    </>
+                  )}
+                </button>
+
+                <div className="text-xs text-gray-500 space-y-1">
+                  <p>接続時にGoogleアカウントへのログインが求められます。</p>
+                  <p>ドライブの読み取り権限のみを使用します（書き込みは行いません）。</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* AI API Keys Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
           className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
         >
           <div className="border-b border-gray-200 p-6">

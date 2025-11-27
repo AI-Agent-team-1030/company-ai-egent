@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Logo Download</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    .logo-container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    canvas {
+      border-radius: 24px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 32px;
+      font-size: 16px;
+      background: #000;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #333;
+    }
+    h1 {
+      margin-bottom: 30px;
+      color: #333;
+    }
+    p {
+      color: #666;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo-container">
+    <h1>法人AI ロゴ</h1>
+    <canvas id="canvas" width="120" height="120"></canvas>
+    <br>
+    <button onclick="downloadPNG()">PNG をダウンロード</button>
+    <p>ダウンロードしたPNGをGoogle Cloud Consoleにアップロードしてください</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, 120, 120, 24);
+    ctx.fill();
+
+    // AI Text
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('AI', 60, 52);
+
+    // Accent line
+    ctx.fillStyle = '#3B82F6';
+    ctx.beginPath();
+    ctx.roundRect(25, 85, 70, 4, 2);
+    ctx.fill();
+
+    function downloadPNG() {
+      const link = document.createElement('a');
+      link.download = 'logo-120x120.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  </script>
+</body>
+</html>
