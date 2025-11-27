@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { db } from '@/lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -89,60 +89,30 @@ export default function LoginPage() {
         return
       }
 
-      // 3. 企業名を正規化して検索
-      const normalizedName = normalizeCompanyName(companyName)
+      // 3. ユーザーのプロフィールを直接取得
+      const profileDoc = await getDoc(doc(db, 'profiles', authData.user.uid))
 
-      let companiesSnapshot
-      try {
-        const companiesQuery = query(
-          collection(db, 'companies'),
-          where('normalizedName', '==', normalizedName)
-        )
-        companiesSnapshot = await getDocs(companiesQuery)
-      } catch (firestoreError: any) {
-        console.error('Firestore query error:', firestoreError)
-        setError(translateFirebaseError(firestoreError))
+      if (!profileDoc.exists()) {
+        setError('プロフィールが見つかりません。新規登録してください')
         setLoading(false)
         return
       }
 
-      if (companiesSnapshot.empty) {
-        setError('企業が見つかりません。企業名を確認してください')
-        setLoading(false)
-        return
-      }
+      const profileData = profileDoc.data()
 
-      const company = companiesSnapshot.docs[0]
-      const companyData = company.data()
+      // 4. 入力された企業名を正規化して比較
+      const normalizedInputName = normalizeCompanyName(companyName)
+      const normalizedProfileName = normalizeCompanyName(profileData.companyName || '')
 
-      // 4. ユーザーがその企業に所属しているか確認
-      let profilesSnapshot
-      try {
-        const profilesQuery = query(
-          collection(db, 'profiles'),
-          where('companyId', '==', company.id)
-        )
-        profilesSnapshot = await getDocs(profilesQuery)
-      } catch (firestoreError: any) {
-        console.error('Firestore profiles query error:', firestoreError)
-        setError(translateFirebaseError(firestoreError))
-        setLoading(false)
-        return
-      }
-
-      const userProfile = profilesSnapshot.docs.find(
-        (doc) => doc.id === authData.user.uid
-      )
-
-      if (!userProfile) {
-        setError('この企業に所属していません')
+      if (normalizedInputName !== normalizedProfileName) {
+        setError('企業名が登録情報と一致しません')
         setLoading(false)
         return
       }
 
       // 5. 企業IDをローカルストレージに保存
-      localStorage.setItem('company_id', company.id)
-      localStorage.setItem('company_name', companyData.name)
+      localStorage.setItem('company_id', profileData.companyId)
+      localStorage.setItem('company_name', profileData.companyName)
 
       // 6. チャットページにリダイレクト
       setLoading(false)
