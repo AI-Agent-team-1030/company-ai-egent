@@ -238,10 +238,14 @@ function ChatContent() {
   // ナレッジ検索は標準搭載のGemini APIキーを使用
   const hasKnowledgeApiKey = !!BUILT_IN_GEMINI_API_KEY
 
+  const isSendingRef = useRef(false)
+
   const handleSend = async (messageText?: string) => {
     const text = messageText || input
 
-    if (!text.trim() || isProcessing) return
+    // 重複送信防止（useRefで即座にブロック）
+    if (!text.trim() || isProcessing || isSendingRef.current) return
+    isSendingRef.current = true
 
     const modelInfo = getSelectedModelInfo()
     if (!modelInfo) {
@@ -335,52 +339,56 @@ function ChatContent() {
         }
       }
 
-      // ナレッジ検索が有効で、File Search Storesがある場合
+      // ナレッジ検索でコンテキストを取得（File Searchがある場合）
+      let knowledgeContext = ''
       if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
-        // Gemini File Searchを使って回答を生成（UIには検索プロセスを表示しない）
-        // Drive結果がある場合は追加のコンテキストとして渡す
-        const systemPrompt = driveContext
-          ? `日本語で回答してください。質問に対して丁寧に回答してください。${driveContext}`
-          : '日本語で回答してください。質問に対して丁寧に回答してください。'
+        try {
+          const searchResult = await queryWithFileSearch(
+            BUILT_IN_GEMINI_API_KEY,
+            fileSearchStores,
+            text,
+            '関連する情報を検索してください'
+          )
 
-        const result = await queryWithFileSearch(
-          BUILT_IN_GEMINI_API_KEY,
-          fileSearchStores,
-          text,
-          systemPrompt
-        )
-
-        if (result.error) {
-          throw new Error(result.error)
+          if (!searchResult.error && searchResult.citations.length > 0) {
+            // ナレッジからのコンテキストを構築
+            knowledgeContext = '\n\n【社内ナレッジから見つかった関連情報】\n'
+            searchResult.citations.forEach((citation: any) => {
+              knowledgeContext += `\n--- ${citation.title} ---\n${citation.text}\n`
+              citations.push({
+                ...citation,
+                source: 'knowledge',
+              })
+            })
+          }
+        } catch (searchError) {
+          console.error('Knowledge search error:', searchError)
+          // 検索エラーは無視して続行
         }
-
-        aiResponse = result.answer
-        // File Searchからのcitationsも追加
-        citations = [...citations, ...result.citations]
-        usedModel = 'gemini-2.5-pro' // File SearchはGemini 2.5 Pro固定
-      } else {
-        // 通常のチャット（選択したプロバイダー・モデルを使用）
-        const apiKey = getApiKeyForProvider(modelInfo.provider)
-
-        // Drive結果がある場合はシステムプロンプトに追加
-        const systemPrompt = driveContext
-          ? `日本語で回答してください。質問に対して丁寧に回答してください。以下の情報を参考にしてください：${driveContext}`
-          : '日本語で回答してください。質問に対して丁寧に回答してください。'
-
-        const result = await aiChat(
-          modelInfo.provider,
-          apiKey,
-          history,
-          selectedModel,
-          systemPrompt
-        )
-
-        if (result.error) {
-          throw new Error(result.error)
-        }
-
-        aiResponse = result.content
       }
+
+      // 選択したモデルで回答を生成
+      const apiKey = getApiKeyForProvider(modelInfo.provider)
+      const combinedContext = driveContext + knowledgeContext
+
+      const systemPrompt = combinedContext
+        ? `日本語で回答してください。質問に対して丁寧に回答してください。以下の情報を参考にしてください：${combinedContext}`
+        : '日本語で回答してください。質問に対して丁寧に回答してください。'
+
+      const result = await aiChat(
+        modelInfo.provider,
+        apiKey,
+        history,
+        selectedModel,
+        systemPrompt
+      )
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      aiResponse = result.content
+      usedModel = selectedModel
 
       // 一時メッセージを実際のメッセージに置き換え
       setMessages(prev =>
@@ -435,6 +443,7 @@ function ChatContent() {
           setIsTyping(false)
           setIsProcessing(false)
           setShouldStopTyping(false)
+          isSendingRef.current = false
           return
         }
 
@@ -450,6 +459,7 @@ function ChatContent() {
         } else {
           setIsTyping(false)
           setIsProcessing(false)
+          isSendingRef.current = false
         }
       }
 
@@ -458,6 +468,7 @@ function ChatContent() {
       console.error('Error sending message:', err)
       setError(err.message || 'メッセージの送信に失敗しました')
       setIsProcessing(false)
+      isSendingRef.current = false
     }
   }
 
