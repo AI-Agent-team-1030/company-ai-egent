@@ -39,6 +39,7 @@ interface Message {
   alternatives?: string[]
   currentAlternativeIndex?: number
   model?: string
+  showCitations?: boolean // タイピング完了後にcitationsを表示
 }
 
 function ChatContent() {
@@ -437,7 +438,7 @@ function ChatContent() {
         if (shouldStopTyping) {
           setMessages(prev => prev.map(m =>
             m.id === aiMessageId
-              ? { ...m, content: aiResponse.substring(0, currentIndex) }
+              ? { ...m, content: aiResponse.substring(0, currentIndex), showCitations: true }
               : m
           ))
           setIsTyping(false)
@@ -457,6 +458,12 @@ function ChatContent() {
           const timeoutId = setTimeout(typeNextCharacter, typingSpeed)
           timeoutsRef.current.push(timeoutId)
         } else {
+          // タイピング完了後、citationsを表示
+          setMessages(prev => prev.map(m =>
+            m.id === aiMessageId
+              ? { ...m, showCitations: true }
+              : m
+          ))
           setIsTyping(false)
           setIsProcessing(false)
           isSendingRef.current = false
@@ -795,16 +802,24 @@ function ChatContent() {
                   )}
                 </div>
 
-                {/* Citations */}
-                {message.citations && message.citations.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                {/* Citations - タイピング完了後にアニメーション表示 */}
+                {message.citations && message.citations.length > 0 && (message.showCitations !== false) && (
+                  <div className={`mt-3 space-y-2 ${message.showCitations === true ? 'animate-fadeIn' : ''}`}>
                     <p className="text-xs text-gray-600 font-bold mb-2">📚 参照した情報源</p>
                     {message.citations.map((citation, i) => (
-                      <div key={i} className={`border rounded-lg p-3 ${
-                        citation.source === 'drive'
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'bg-green-50 border-green-200'
-                      }`}>
+                      <div
+                        key={i}
+                        className={`border rounded-lg p-3 transform transition-all duration-300 ${
+                          citation.source === 'drive'
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-green-50 border-green-200'
+                        }`}
+                        style={{
+                          animationDelay: message.showCitations === true ? `${i * 150}ms` : '0ms',
+                          animation: message.showCitations === true ? 'slideUp 0.3s ease-out forwards' : 'none',
+                          opacity: message.showCitations === true ? 0 : 1
+                        }}
+                      >
                         <div className="flex items-start gap-2">
                           <span className="text-lg flex-shrink-0">
                             {citation.source === 'drive' ? '📁' : '📄'}
