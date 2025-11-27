@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/firebase'
+import { collection, query, where, getDocs, doc, setDoc, addDoc } from 'firebase/firestore'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -26,6 +27,37 @@ export default function SignupPage() {
       .replace(/\s+/g, '')
       .replace(/[　]/g, '')
       .trim()
+  }
+
+  // Firebaseエラーを日本語に変換
+  const translateFirebaseError = (error: any): string => {
+    const code = error?.code || ''
+    const message = error?.message || ''
+
+    // Firebase Authエラー
+    if (code === 'auth/email-already-in-use') {
+      return 'このメールアドレスは既に登録されています'
+    }
+    if (code === 'auth/invalid-email') {
+      return 'メールアドレスの形式が正しくありません'
+    }
+    if (code === 'auth/weak-password') {
+      return 'パスワードが弱すぎます。より強力なパスワードを設定してください'
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'この認証方法は現在無効になっています'
+    }
+    if (code === 'auth/network-request-failed') {
+      return 'ネットワークエラーが発生しました。接続を確認してください'
+    }
+
+    // Firestoreエラー
+    if (code === 'permission-denied' || message.includes('Missing or insufficient permissions')) {
+      return 'データベースへのアクセス権限がありません。管理者に連絡してください'
+    }
+
+    // その他
+    return '登録中にエラーが発生しました。しばらくしてから再度お試しください'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,116 +91,68 @@ export default function SignupPage() {
     }
 
     try {
-      // 1. Supabase認証でユーザー作成
-      console.log('Starting signup process...')
+      // 1. Firebase認証でユーザー作成
       const { data: authData, error: authError } = await signUp(email, password)
 
-      console.log('Signup result:', { authData, authError })
-
       if (authError) {
-        console.error('Auth error:', authError)
-        // ユーザーが既に存在する場合
-        if (authError.message.includes('already registered') || authError.message.includes('User already registered')) {
-          setError('このメールアドレスは既に登録されています。ログインページからログインしてください。')
-        } else {
-          setError(`認証エラー: ${authError.message}`)
-        }
+        setError(translateFirebaseError(authError))
         setLoading(false)
         return
       }
 
-      if (!authData.user) {
-        console.error('No user data returned')
+      if (!authData?.user) {
         setError('ユーザー作成に失敗しました')
         setLoading(false)
         return
       }
 
-      console.log('User created:', authData.user.id)
-
       // 2. 企業名を正規化
-      console.log('Normalizing company name:', companyName)
       const normalizedName = normalizeCompanyName(companyName)
-      console.log('Normalized name:', normalizedName)
 
       // 3. 企業を検索または作成
       let companyId: string
+      let finalCompanyName: string
 
-      console.log('Searching for existing company...')
-      const { data: existingCompany, error: searchError } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('normalized_name', normalizedName)
-        .single()
+      const companiesQuery = query(
+        collection(db, 'companies'),
+        where('normalizedName', '==', normalizedName)
+      )
+      const companiesSnapshot = await getDocs(companiesQuery)
 
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Company search error:', searchError)
-      }
-
-      if (existingCompany) {
+      if (!companiesSnapshot.empty) {
         // 既存の企業
-        console.log('Found existing company:', existingCompany.id)
+        const existingCompany = companiesSnapshot.docs[0]
         companyId = existingCompany.id
+        finalCompanyName = existingCompany.data().name
       } else {
         // 新しい企業を作成
-        console.log('Creating new company...')
-        const { data: newCompany, error: companyError } = await supabase
-          .from('companies')
-          .insert({
-            name: companyName.trim(),
-            normalized_name: normalizedName,
-          })
-          .select('id')
-          .single()
-
-        if (companyError) {
-          console.error('Company creation error:', companyError)
-          setError(`企業の作成に失敗しました: ${companyError.message}`)
-          setLoading(false)
-          return
-        }
-
-        if (!newCompany) {
-          console.error('No company data returned')
-          setError('企業の作成に失敗しました')
-          setLoading(false)
-          return
-        }
-
-        console.log('Company created:', newCompany.id)
-        companyId = newCompany.id
+        const newCompanyRef = await addDoc(collection(db, 'companies'), {
+          name: companyName.trim(),
+          normalizedName: normalizedName,
+          createdAt: new Date(),
+        })
+        companyId = newCompanyRef.id
+        finalCompanyName = companyName.trim()
       }
 
       // 4. プロフィールを作成
-      console.log('Creating profile for user:', authData.user.id)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          company_id: companyId,
-          user_name: userName.trim(),
-        })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-        setError(`プロフィールの作成に失敗しました: ${profileError.message}`)
-        setLoading(false)
-        return
-      }
-
-      console.log('Profile created successfully')
+      await setDoc(doc(db, 'profiles', authData.user.uid), {
+        userName: userName.trim(),
+        companyId: companyId,
+        companyName: finalCompanyName,
+        email: email,
+        createdAt: new Date(),
+      })
 
       // 5. 企業IDをローカルストレージに保存
       localStorage.setItem('company_id', companyId)
-      localStorage.setItem('company_name', companyName.trim())
-
-      console.log('Signup complete! Redirecting to chat...')
+      localStorage.setItem('company_name', finalCompanyName)
 
       // 6. チャットページにリダイレクト
       router.push('/chat')
     } catch (err: any) {
       console.error('Signup error:', err)
-      setError(err.message || '登録中にエラーが発生しました')
+      setError(translateFirebaseError(err))
       setLoading(false)
     }
   }
@@ -182,7 +166,7 @@ export default function SignupPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">新規登録</h1>
-          <p className="text-gray-600">社内ポータルサイトを始めましょう</p>
+          <p className="text-gray-600">社内AIアシスタントを始めましょう</p>
         </div>
 
         {error && (

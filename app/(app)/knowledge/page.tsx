@@ -6,264 +6,274 @@ import {
   BookOpenIcon,
   PlusIcon,
   TrashIcon,
-  DocumentTextIcon,
   CheckCircleIcon,
-  ClockIcon,
   CloudArrowUpIcon,
   XMarkIcon,
-  EyeIcon,
   FolderIcon,
   FolderOpenIcon,
   PencilIcon,
 } from '@heroicons/react/24/outline'
-import { apiGet, apiRequest, apiDelete } from '@/lib/api-client'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  saveFileSearchStore,
+  getCompanyFileSearchStores,
+  saveUploadedDocument,
+  getDocuments,
+  createFolder,
+  getFolders,
+  updateFolder,
+  deleteFolder,
+  deleteDocument,
+} from '@/lib/firestore-chat'
+import {
+  createFileSearchStore,
+  uploadFile,
+  importFileToStore,
+} from '@/lib/gemini-file-search'
+import { BUILT_IN_GEMINI_API_KEY } from '@/lib/ai-providers'
+
+interface Document {
+  id: string
+  fileName: string
+  originalFileName: string
+  geminiFileName: string
+  storeName: string
+  folderId: string | null
+  createdAt: Date
+}
 
 interface Folder {
   id: string
   name: string
-  user_id: string
-  parent_folder_id: string | null
-  created_at: string
-  updated_at: string
+  companyId: string
+  parentFolderId: string | null
 }
 
-interface Document {
+interface StoreInfo {
   id: string
-  filename: string
-  original_filename: string
-  file_type: string
-  file_size: number
-  uploaded_at: string
-  processed: boolean
-  processed_at: string | null
-  folder_id: string | null
+  storeName: string
+  displayName: string
 }
 
 interface ProcessingStatus {
   [key: string]: {
-    status: 'uploading' | 'extracting' | 'completed' | 'error'
+    status: 'uploading' | 'processing' | 'completed' | 'error'
     message: string
     progress: number
   }
 }
 
-interface DocumentDetail {
-  document: Document
-  chunks: Array<{ id: string; content: string; chunk_index: number }>
-  fullText: string
-  markdown: string
-}
-
 export default function KnowledgePage() {
-  const [folders, setFolders] = useState<Folder[]>([])
+  const { user, profile } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [stores, setStores] = useState<StoreInfo[]>([])
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({})
-  const [selectedDocument, setSelectedDocument] = useState<DocumentDetail | null>(null)
-  const [loadingDetail, setLoadingDetail] = useState(false)
-  const [showCreateFolder, setShowCreateFolder] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
+
+  // フォルダモーダル
+  const [showFolderModal, setShowFolderModal] = useState(false)
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null)
+  const [folderName, setFolderName] = useState('')
 
   useEffect(() => {
-    fetchFolders()
-    fetchDocuments()
-  }, [])
-
-  const fetchFolders = async () => {
-    try {
-      const response = await apiGet('/api/folders')
-      if (!response.ok) throw new Error('Failed to fetch folders')
-
-      const result = await response.json()
-      setFolders(result.data || [])
-    } catch (err: any) {
-      console.error('Error fetching folders:', err)
+    if (profile?.companyId) {
+      fetchData()
     }
-  }
+  }, [profile?.companyId])
 
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return
-
-    try {
-      const response = await apiRequest('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newFolderName.trim() }),
-      })
-
-      if (!response.ok) throw new Error('Failed to create folder')
-
-      const newFolder = await response.json()
-      setFolders((prev) => [...prev, newFolder])
-      setNewFolderName('')
-      setShowCreateFolder(false)
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
-  const handleUpdateFolder = async () => {
-    if (!editingFolder || !newFolderName.trim()) return
-
-    try {
-      const response = await apiRequest(`/api/folders/${editingFolder.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newFolderName.trim() }),
-      })
-
-      if (!response.ok) throw new Error('Failed to update folder')
-
-      const updatedFolder = await response.json()
-      setFolders((prev) => prev.map((f) => (f.id === updatedFolder.id ? updatedFolder : f)))
-      setEditingFolder(null)
-      setNewFolderName('')
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
-  const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('このフォルダを削除しますか？')) return
-
-    try {
-      const response = await apiDelete(`/api/folders/${folderId}`)
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error)
-      }
-
-      setFolders((prev) => prev.filter((f) => f.id !== folderId))
-      if (selectedFolderId === folderId) {
-        setSelectedFolderId(null)
-      }
-    } catch (err: any) {
-      setError(err.message)
-      alert(err.message)
-    }
-  }
-
-  const fetchDocuments = async () => {
+  const fetchData = async () => {
+    if (!profile?.companyId) return
     setLoading(true)
     try {
-      const response = await apiGet('/api/documents')
-      if (!response.ok) throw new Error('Failed to fetch documents')
+      const [storesData, docsData, foldersData] = await Promise.all([
+        getCompanyFileSearchStores(profile.companyId),
+        getDocuments(profile.companyId),
+        getFolders(profile.companyId),
+      ])
 
-      const result = await response.json()
-      setDocuments(result.data || [])
+      setStores(storesData.map((s: any) => ({
+        id: s.id,
+        storeName: s.storeName,
+        displayName: s.displayName,
+      })))
+
+      setDocuments(docsData.map((d: any) => ({
+        id: d.id,
+        fileName: d.fileName,
+        originalFileName: d.originalFileName,
+        geminiFileName: d.geminiFileName,
+        storeName: d.storeName,
+        folderId: d.folderId || null,
+        createdAt: d.createdAt,
+      })))
+
+      setFolders(foldersData.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        companyId: f.companyId,
+        parentFolderId: f.parentFolderId,
+      })))
     } catch (err: any) {
+      console.error('Error fetching data:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleCreateFolder = async () => {
+    if (!folderName.trim() || !user || !profile?.companyId) return
+
+    try {
+      const result = await createFolder(user.uid, profile.companyId, folderName.trim())
+      setFolders(prev => [...prev, { ...result, companyId: profile.companyId, parentFolderId: null }])
+      setFolderName('')
+      setShowFolderModal(false)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleUpdateFolder = async () => {
+    if (!editingFolder || !folderName.trim()) return
+
+    try {
+      await updateFolder(editingFolder.id, folderName.trim())
+      setFolders(prev => prev.map(f => f.id === editingFolder.id ? { ...f, name: folderName.trim() } : f))
+      setEditingFolder(null)
+      setFolderName('')
+      setShowFolderModal(false)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleDeleteFolder = async (folderId: string) => {
+    const folderDocs = documents.filter(d => d.folderId === folderId)
+    if (folderDocs.length > 0) {
+      alert('フォルダ内にドキュメントがあるため削除できません。先にドキュメントを削除してください。')
+      return
+    }
+    if (!confirm('このフォルダを削除しますか？')) return
+
+    try {
+      await deleteFolder(folderId)
+      setFolders(prev => prev.filter(f => f.id !== folderId))
+      if (selectedFolderId === folderId) setSelectedFolderId(null)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm('このドキュメントを削除しますか？')) return
+
+    try {
+      await deleteDocument(docId)
+      setDocuments(prev => prev.filter(d => d.id !== docId))
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !user || !profile?.companyId) return
 
     const tempId = `temp-${Date.now()}`
     setUploading(true)
     setError(null)
 
-    // アップロード中の状態を表示
     setProcessingStatus((prev) => ({
       ...prev,
       [tempId]: {
         status: 'uploading',
         message: `${file.name} をアップロード中...`,
-        progress: 30,
+        progress: 20,
       },
     }))
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      if (selectedFolderId) {
-        formData.append('folder_id', selectedFolderId)
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+      if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
+
+      // ストアが存在しない場合は作成
+      let storeName = stores[0]?.storeName
+      if (!storeName) {
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: 'ナレッジストアを作成中...', progress: 30 },
+        }))
+
+        const storeResult = await createFileSearchStore(apiKey, `${profile.companyName || 'Company'} Knowledge`)
+        if (storeResult.error) throw new Error(storeResult.error)
+        storeName = storeResult.storeName
+
+        await saveFileSearchStore(user.uid, profile.companyId, storeName, `${profile.companyName || 'Company'} Knowledge`)
+        setStores(prev => [...prev, { id: Date.now().toString(), storeName, displayName: `${profile.companyName || 'Company'} Knowledge` }])
       }
 
-      const response = await apiRequest('/api/documents/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Upload failed')
-      }
-
-      const newDocument = await response.json()
-
-      // テキスト抽出中の状態を表示
+      // ファイルをGeminiにアップロード
       setProcessingStatus((prev) => ({
         ...prev,
-        [tempId]: {
-          status: 'extracting',
-          message: 'テキストを抽出中...',
-          progress: 60,
-        },
+        [tempId]: { status: 'processing', message: 'Gemini AIにアップロード中...', progress: 50 },
       }))
 
-      setDocuments((prev) => [newDocument, ...prev])
+      const fileBuffer = await file.arrayBuffer()
+      const uploadResult = await uploadFile(apiKey, new Uint8Array(fileBuffer), file.name, file.type)
+      if (uploadResult.error) throw new Error(uploadResult.error)
 
-      // 処理完了を待つ（ポーリング）
-      let attempts = 0
-      const checkProcessing = setInterval(async () => {
-        attempts++
-        const checkResponse = await apiGet('/api/documents')
-        const result = await checkResponse.json()
-        const doc = result.data.find((d: Document) => d.id === newDocument.id)
+      // ストアにインポート
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: { status: 'processing', message: 'インデックス作成中...', progress: 70 },
+      }))
 
-        if (doc?.processed || attempts > 30) {
-          clearInterval(checkProcessing)
+      const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+      if (importResult.error) throw new Error(importResult.error)
 
-          // 完了状態を表示
-          setProcessingStatus((prev) => ({
-            ...prev,
-            [tempId]: {
-              status: 'completed',
-              message: '処理完了！',
-              progress: 100,
-            },
-          }))
+      // Firestoreに保存
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: { status: 'processing', message: '保存中...', progress: 90 },
+      }))
 
-          // 3秒後にステータスを削除
-          setTimeout(() => {
-            setProcessingStatus((prev) => {
-              const { [tempId]: _, ...rest } = prev
-              return rest
-            })
-          }, 3000)
+      await saveUploadedDocument(
+        user.uid,
+        profile.companyId,
+        file.name,
+        file.name,
+        uploadResult.fileName,
+        storeName,
+        selectedFolderId
+      )
 
-          // ドキュメントリストを更新
-          fetchDocuments()
-        }
-      }, 2000)
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: { status: 'completed', message: '完了！', progress: 100 },
+      }))
 
-      // ファイル入力をリセット
+      await fetchData()
+
+      setTimeout(() => {
+        setProcessingStatus((prev) => {
+          const { [tempId]: _, ...rest } = prev
+          return rest
+        })
+      }, 3000)
+
       e.target.value = ''
     } catch (err: any) {
       setError(err.message)
-
-      // エラー状態を表示
       setProcessingStatus((prev) => ({
         ...prev,
-        [tempId]: {
-          status: 'error',
-          message: `エラー: ${err.message}`,
-          progress: 0,
-        },
+        [tempId]: { status: 'error', message: `エラー: ${err.message}`, progress: 0 },
       }))
 
-      // 5秒後にエラー表示を削除
       setTimeout(() => {
         setProcessingStatus((prev) => {
           const { [tempId]: _, ...rest } = prev
@@ -275,77 +285,30 @@ export default function KnowledgePage() {
     }
   }
 
-  const handleViewDocument = async (doc: Document) => {
-    if (!doc.processed) {
-      alert('このドキュメントはまだ処理中です')
-      return
-    }
-
-    setLoadingDetail(true)
-    try {
-      const response = await apiGet(`/api/documents/${doc.id}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch document details')
-      }
-
-      const detail: DocumentDetail = await response.json()
-      setSelectedDocument(detail)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoadingDetail(false)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('このドキュメントを削除しますか？')) return
-
-    try {
-      const response = await apiDelete(`/api/documents/${id}`)
-
-      if (!response.ok) {
-        throw new Error('Failed to delete document')
-      }
-
-      setDocuments((prev) => prev.filter((d) => d.id !== id))
-      if (selectedDocument?.document.id === id) {
-        setSelectedDocument(null)
-      }
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
-
-  const getFileTypeIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return '📄'
-    if (fileType.includes('word')) return '📝'
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return '📊'
-    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return '📽️'
-    if (fileType.includes('csv')) return '📈'
-    if (fileType.includes('image')) return '🖼️'
-    if (fileType.includes('text')) return '📃'
+  const getFileTypeIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase()
+    if (ext === 'pdf') return '📄'
+    if (['doc', 'docx'].includes(ext || '')) return '📝'
+    if (['xls', 'xlsx'].includes(ext || '')) return '📊'
+    if (['ppt', 'pptx'].includes(ext || '')) return '📽️'
+    if (ext === 'csv') return '📈'
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext || '')) return '🖼️'
+    if (['txt', 'md'].includes(ext || '')) return '📃'
     return '📁'
   }
+
+  const filteredDocuments = selectedFolderId
+    ? documents.filter(d => d.folderId === selectedFolderId)
+    : documents
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-1 md:mb-2">ナレッジベース</h1>
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-1">ナレッジボックス</h1>
           <p className="text-sm md:text-base text-gray-600">
-            ドキュメントをアップロードして、AIが参照できるようにします
-            {selectedFolderId && (
-              <span className="ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded">
-                📁 {folders.find((f) => f.id === selectedFolderId)?.name || 'フォルダ'} に保存されます
-              </span>
-            )}
+            ドキュメントをアップロードすると、チャットで自動検索されます
           </p>
         </div>
         <label className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold cursor-pointer text-sm md:text-base w-full sm:w-auto">
@@ -368,45 +331,30 @@ export default function KnowledgePage() {
             <div
               key={id}
               className={`rounded-lg p-4 ${
-                status.status === 'error'
-                  ? 'bg-red-50 border border-red-200'
-                  : status.status === 'completed'
-                  ? 'bg-green-50 border border-green-200'
-                  : 'bg-blue-50 border border-blue-200'
+                status.status === 'error' ? 'bg-red-50 border border-red-200' :
+                status.status === 'completed' ? 'bg-green-50 border border-green-200' :
+                'bg-blue-50 border border-blue-200'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <p
-                  className={`text-sm font-medium ${
-                    status.status === 'error'
-                      ? 'text-red-800'
-                      : status.status === 'completed'
-                      ? 'text-green-800'
-                      : 'text-blue-800'
-                  }`}
-                >
+                <p className={`text-sm font-medium ${
+                  status.status === 'error' ? 'text-red-800' :
+                  status.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+                }`}>
                   {status.message}
                 </p>
-                <span
-                  className={`text-xs font-bold ${
-                    status.status === 'error'
-                      ? 'text-red-600'
-                      : status.status === 'completed'
-                      ? 'text-green-600'
-                      : 'text-blue-600'
-                  }`}
-                >
+                <span className={`text-xs font-bold ${
+                  status.status === 'error' ? 'text-red-600' :
+                  status.status === 'completed' ? 'text-green-600' : 'text-blue-600'
+                }`}>
                   {status.progress}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    status.status === 'error'
-                      ? 'bg-red-600'
-                      : status.status === 'completed'
-                      ? 'bg-green-600'
-                      : 'bg-blue-600'
+                  className={`h-2 rounded-full transition-all ${
+                    status.status === 'error' ? 'bg-red-600' :
+                    status.status === 'completed' ? 'bg-green-600' : 'bg-blue-600'
                   }`}
                   style={{ width: `${status.progress}%` }}
                 />
@@ -416,30 +364,28 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      {/* Error Banner */}
+      {/* Error */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600 text-sm">
-            <strong>エラー:</strong> {error}
-          </p>
+          <p className="text-red-600 text-sm"><strong>エラー:</strong> {error}</p>
         </div>
       )}
 
-      {/* Folders Section */}
+      {/* Folders */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">フォルダ</h2>
+          <h2 className="text-lg font-bold text-gray-900">フォルダ</h2>
           <button
-            onClick={() => setShowCreateFolder(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+            onClick={() => { setShowFolderModal(true); setEditingFolder(null); setFolderName(''); }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
           >
             <PlusIcon className="w-4 h-4" />
-            新しいフォルダ
+            新規フォルダ
           </button>
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {/* All Documents */}
+          {/* All */}
           <button
             onClick={() => setSelectedFolderId(null)}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all whitespace-nowrap ${
@@ -453,9 +399,8 @@ export default function KnowledgePage() {
             <span className="text-xs opacity-75">({documents.length})</span>
           </button>
 
-          {/* Folders */}
           {folders.map((folder) => {
-            const folderDocs = documents.filter((d) => d.folder_id === folder.id)
+            const count = documents.filter(d => d.folderId === folder.id).length
             return (
               <div key={folder.id} className="relative group">
                 <button
@@ -468,27 +413,19 @@ export default function KnowledgePage() {
                 >
                   <FolderIcon className="w-5 h-5" />
                   <span className="font-medium">{folder.name}</span>
-                  <span className="text-xs opacity-75">({folderDocs.length})</span>
+                  <span className="text-xs opacity-75">({count})</span>
                 </button>
 
-                {/* Folder actions */}
                 <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingFolder(folder)
-                      setNewFolderName(folder.name)
-                    }}
-                    className="p-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setEditingFolder(folder); setFolderName(folder.name); setShowFolderModal(true); }}
+                    className="p-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
                     <PencilIcon className="w-3 h-3 text-gray-600" />
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteFolder(folder.id)
-                    }}
-                    className="p-1.5 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }}
+                    className="p-1.5 bg-white border border-red-300 rounded-lg hover:bg-red-50"
                   >
                     <TrashIcon className="w-3 h-3 text-red-600" />
                   </button>
@@ -497,40 +434,27 @@ export default function KnowledgePage() {
             )
           })}
         </div>
+
+        {selectedFolderId && (
+          <p className="text-sm text-gray-500 mt-2">
+            📁 「{folders.find(f => f.id === selectedFolderId)?.name}」に保存されます
+          </p>
+        )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
-        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs md:text-sm text-gray-600 mb-1">総ドキュメント数</p>
-          <p className="text-xl md:text-2xl font-bold text-gray-900">{loading ? '-' : documents.length}</p>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-600 mb-1">ドキュメント数</p>
+          <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
         </div>
-        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs md:text-sm text-gray-600 mb-1">処理済み</p>
-          <p className="text-xl md:text-2xl font-bold text-gray-900">
-            {loading ? '-' : documents.filter((d) => d.processed).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs md:text-sm text-gray-600 mb-1">処理中</p>
-          <p className="text-xl md:text-2xl font-bold text-gray-900">
-            {loading ? '-' : documents.filter((d) => !d.processed).length}
-          </p>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-600 mb-1">フォルダ数</p>
+          <p className="text-2xl font-bold text-gray-900">{folders.length}</p>
         </div>
       </div>
 
-      {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-6">
-        <p className="text-blue-800 text-xs md:text-sm">
-          <strong>対応形式:</strong> PDF, Word, Excel, PowerPoint, CSV, テキスト, Markdown, 画像
-          <br />
-          <strong>最大サイズ:</strong> 50MB
-          <br className="hidden md:block" />
-          <span className="hidden md:inline"><strong>使い方:</strong> ドキュメントをアップロードすると、自動的にテキストが抽出されます（画像はOCR処理）。チャットで質問すると、AIが関連するドキュメントを参照して回答します。</span>
-        </p>
-      </div>
-
-      {/* Loading State */}
+      {/* Loading */}
       {loading && (
         <div className="text-center py-16">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
@@ -538,99 +462,65 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      {/* Document List */}
+      {/* Documents */}
       {!loading && (
-        <div className="space-y-4">
-          {(() => {
-            const filteredDocuments = selectedFolderId
-              ? documents.filter((d) => d.folder_id === selectedFolderId)
-              : documents
-
-            if (filteredDocuments.length === 0) {
-              return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 bg-white rounded-lg border border-gray-200"
-            >
+        <div className="space-y-3">
+          {filteredDocuments.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
               <BookOpenIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">ドキュメントがありません</h3>
-              <p className="text-gray-600 mb-4">
-                {selectedFolderId ? 'このフォルダにはドキュメントがありません' : '最初のドキュメントをアップロードしてください'}
-              </p>
-            </motion.div>
-              )
-            }
-
-            return filteredDocuments.map((doc, index) => (
+              <p className="text-gray-600">ドキュメントをアップロードしてください</p>
+            </div>
+          ) : (
+            filteredDocuments.map((doc, index) => (
               <motion.div
                 key={doc.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all"
+                transition={{ delay: index * 0.03 }}
+                className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
-                    <div className="text-2xl md:text-4xl flex-shrink-0">{getFileTypeIcon(doc.file_type)}</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="text-2xl flex-shrink-0">{getFileTypeIcon(doc.originalFileName)}</div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-sm md:text-lg mb-1 truncate">
-                        {doc.original_filename}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-600 mb-2 md:mb-3">
-                        <span>{formatFileSize(doc.file_size)}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span className="hidden sm:inline">{new Date(doc.uploaded_at).toLocaleDateString('ja-JP')}</span>
-                        <span className="hidden sm:inline">•</span>
-                        {doc.processed ? (
-                          <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircleIcon className="w-3 h-3 md:w-4 md:h-4" />
-                            処理済み
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-yellow-600">
-                            <ClockIcon className="w-3 h-3 md:w-4 md:h-4" />
-                            処理中...
-                          </span>
+                      <h3 className="font-bold text-gray-900 text-sm truncate">{doc.originalFileName}</h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <span className="flex items-center gap-1 text-green-600">
+                          <CheckCircleIcon className="w-3 h-3" />
+                          インデックス済み
+                        </span>
+                        {doc.folderId && (
+                          <>
+                            <span>•</span>
+                            <span>📁 {folders.find(f => f.id === doc.folderId)?.name}</span>
+                          </>
                         )}
                       </div>
-                      {doc.processed && (
-                        <button
-                          onClick={() => handleViewDocument(doc)}
-                          className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-xs md:text-sm font-medium"
-                        >
-                          <EyeIcon className="w-3 h-3 md:w-4 md:h-4" />
-                          内容を表示
-                        </button>
-                      )}
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                    onClick={() => handleDeleteDocument(doc.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                   >
-                    <TrashIcon className="w-4 h-4 md:w-5 md:h-5" />
+                    <TrashIcon className="w-5 h-5" />
                   </button>
                 </div>
               </motion.div>
             ))
-          })()}
+          )}
         </div>
       )}
 
-      {/* Create/Edit Folder Modal */}
+      {/* Folder Modal */}
       <AnimatePresence>
-        {(showCreateFolder || editingFolder) && (
+        {showFolderModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => {
-              setShowCreateFolder(false)
-              setEditingFolder(null)
-              setNewFolderName('')
-            }}
+            onClick={() => setShowFolderModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -639,39 +529,31 @@ export default function KnowledgePage() {
               className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
                 {editingFolder ? 'フォルダ名を変更' : '新しいフォルダ'}
               </h2>
 
               <input
                 type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    editingFolder ? handleUpdateFolder() : handleCreateFolder()
-                  }
-                }}
-                placeholder="フォルダ名を入力"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                onKeyPress={(e) => { if (e.key === 'Enter') editingFolder ? handleUpdateFolder() : handleCreateFolder() }}
+                placeholder="フォルダ名"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 mb-4"
                 autoFocus
               />
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setShowCreateFolder(false)
-                    setEditingFolder(null)
-                    setNewFolderName('')
-                  }}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  onClick={() => setShowFolderModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
-                  disabled={!newFolderName.trim()}
-                  className="flex-1 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  disabled={!folderName.trim()}
+                  className="flex-1 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium disabled:bg-gray-300"
                 >
                   {editingFolder ? '変更' : '作成'}
                 </button>
@@ -680,74 +562,6 @@ export default function KnowledgePage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Document Detail Modal */}
-      <AnimatePresence>
-        {selectedDocument && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedDocument(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="border-b border-gray-200 p-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl">{getFileTypeIcon(selectedDocument.document.file_type)}</div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {selectedDocument.document.original_filename}
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      {formatFileSize(selectedDocument.document.file_size)} • {selectedDocument.chunks.length} チャンク
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedDocument(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <XMarkIcon className="w-6 h-6 text-gray-600" />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {selectedDocument.markdown}
-                  </ReactMarkdown>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="border-t border-gray-200 p-4 bg-gray-50 rounded-b-xl">
-                <p className="text-xs text-gray-600 text-center">
-                  このドキュメントはマークダウン形式に自動変換されています
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Loading Detail Overlay */}
-      {loadingDetail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 shadow-2xl">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-            <p className="text-gray-900 font-medium">読み込み中...</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

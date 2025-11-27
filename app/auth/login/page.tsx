@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,6 +27,40 @@ export default function LoginPage() {
       .trim()
   }
 
+  // Firebaseエラーを日本語に変換
+  const translateFirebaseError = (error: any): string => {
+    const code = error?.code || ''
+    const message = error?.message || ''
+
+    // Firebase Authエラー
+    if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+      return 'メールアドレスまたはパスワードが正しくありません'
+    }
+    if (code === 'auth/invalid-email') {
+      return 'メールアドレスの形式が正しくありません'
+    }
+    if (code === 'auth/too-many-requests') {
+      return 'ログイン試行回数が多すぎます。しばらく待ってから再度お試しください'
+    }
+    if (code === 'auth/invalid-credential') {
+      return 'メールアドレスまたはパスワードが正しくありません'
+    }
+    if (code === 'auth/network-request-failed') {
+      return 'ネットワークエラーが発生しました。接続を確認してください'
+    }
+
+    // Firestoreエラー
+    if (code === 'permission-denied' || message.includes('Missing or insufficient permissions')) {
+      return 'データベースへのアクセス権限がありません。管理者に連絡してください'
+    }
+    if (message.includes('Failed to get document')) {
+      return 'データの取得に失敗しました'
+    }
+
+    // その他
+    return 'ログイン中にエラーが発生しました。しばらくしてから再度お試しください'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -39,11 +74,11 @@ export default function LoginPage() {
         return
       }
 
-      // 2. Supabase認証
+      // 2. Firebase認証
       const { data: authData, error: authError } = await signIn(email, password)
 
       if (authError) {
-        setError(`認証エラー: ${authError.message}`)
+        setError(translateFirebaseError(authError))
         setLoading(false)
         return
       }
@@ -57,27 +92,49 @@ export default function LoginPage() {
       // 3. 企業名を正規化して検索
       const normalizedName = normalizeCompanyName(companyName)
 
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('id, name')
-        .eq('normalized_name', normalizedName)
-        .single()
+      let companiesSnapshot
+      try {
+        const companiesQuery = query(
+          collection(db, 'companies'),
+          where('normalizedName', '==', normalizedName)
+        )
+        companiesSnapshot = await getDocs(companiesQuery)
+      } catch (firestoreError: any) {
+        console.error('Firestore query error:', firestoreError)
+        setError(translateFirebaseError(firestoreError))
+        setLoading(false)
+        return
+      }
 
-      if (companyError || !company) {
+      if (companiesSnapshot.empty) {
         setError('企業が見つかりません。企業名を確認してください')
         setLoading(false)
         return
       }
 
-      // 4. ユーザーがその企業に所属しているか確認
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .eq('company_id', company.id)
-        .single()
+      const company = companiesSnapshot.docs[0]
+      const companyData = company.data()
 
-      if (profileError || !profile) {
+      // 4. ユーザーがその企業に所属しているか確認
+      let profilesSnapshot
+      try {
+        const profilesQuery = query(
+          collection(db, 'profiles'),
+          where('companyId', '==', company.id)
+        )
+        profilesSnapshot = await getDocs(profilesQuery)
+      } catch (firestoreError: any) {
+        console.error('Firestore profiles query error:', firestoreError)
+        setError(translateFirebaseError(firestoreError))
+        setLoading(false)
+        return
+      }
+
+      const userProfile = profilesSnapshot.docs.find(
+        (doc) => doc.id === authData.user.uid
+      )
+
+      if (!userProfile) {
         setError('この企業に所属していません')
         setLoading(false)
         return
@@ -85,13 +142,14 @@ export default function LoginPage() {
 
       // 5. 企業IDをローカルストレージに保存
       localStorage.setItem('company_id', company.id)
-      localStorage.setItem('company_name', company.name)
+      localStorage.setItem('company_name', companyData.name)
 
       // 6. チャットページにリダイレクト
       setLoading(false)
       router.push('/chat')
     } catch (err: any) {
-      setError(err.message || 'ログイン中にエラーが発生しました')
+      console.error('Login error:', err)
+      setError(translateFirebaseError(err))
       setLoading(false)
     }
   }
@@ -105,7 +163,7 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">ログイン</h1>
-          <p className="text-gray-600">社内ポータルサイトへようこそ</p>
+          <p className="text-gray-600">社内AIアシスタントへようこそ</p>
         </div>
 
         {error && (

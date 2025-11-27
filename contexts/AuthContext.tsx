@@ -1,13 +1,26 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { User } from 'firebase/auth'
+import { auth, db } from '@/lib/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
+import {
+  signIn as firebaseSignIn,
+  signUp as firebaseSignUp,
+  signOut as firebaseSignOut,
+} from '@/lib/firebase-auth'
+
+interface UserProfile {
+  userName: string
+  companyId: string
+  companyName: string
+}
 
 interface AuthContextType {
   user: User | null
-  session: Session | null
+  profile: UserProfile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
   signUp: (email: string, password: string) => Promise<{ data: any; error: any }>
@@ -18,93 +31,61 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    // 初期セッションを取得
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Session error:', error)
-        // エラーがある場合はセッションをクリア
-        setSession(null)
-        setUser(null)
-        // ローカルストレージもクリア
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('supabase.auth.token')
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser)
+
+      if (firebaseUser) {
+        // Firestoreからプロフィールを取得
+        try {
+          const profileDoc = await getDoc(doc(db, 'profiles', firebaseUser.uid))
+          if (profileDoc.exists()) {
+            const data = profileDoc.data()
+            setProfile({
+              userName: data.userName,
+              companyId: data.companyId,
+              companyName: data.companyName,
+            })
+            // ローカルストレージにも保存（互換性のため）
+            localStorage.setItem('company_id', data.companyId)
+            localStorage.setItem('company_name', data.companyName)
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile:', error)
         }
       } else {
-        setSession(session)
-        setUser(session?.user ?? null)
+        setProfile(null)
+        localStorage.removeItem('company_id')
+        localStorage.removeItem('company_name')
       }
-      setLoading(false)
-    }).catch((error) => {
-      console.error('Failed to get session:', error)
-      setSession(null)
-      setUser(null)
+
       setLoading(false)
     })
 
-    // 認証状態の変更をリッスン
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        // ローカルストレージをクリア
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('company_id')
-          localStorage.removeItem('company_name')
-        }
-      }
-
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
+    return () => unsubscribe()
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      return { data, error }
-    } catch (err) {
-      console.error('[AuthContext] signIn exception:', err)
-      return { data: null, error: err }
-    }
+    return firebaseSignIn(email, password)
   }
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: undefined, // メール確認リンクを無効化
-      },
-    })
-
-    // データとエラーを返すのみ。リダイレクトはサインアップページで処理
-    return { data, error }
+    return firebaseSignUp(email, password)
   }
 
   const signOut = async () => {
-    // ローカルストレージをクリア
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('company_id')
-      localStorage.removeItem('company_name')
-    }
-    await supabase.auth.signOut()
+    localStorage.removeItem('company_id')
+    localStorage.removeItem('company_name')
+    await firebaseSignOut()
     router.push('/auth/login')
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   )

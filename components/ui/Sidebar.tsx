@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
-import { apiGet, apiDelete } from '@/lib/api-client'
+import { getConversations, deleteConversation as firestoreDeleteConversation } from '@/lib/firestore-chat'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import {
   ChatBubbleLeftRightIcon,
@@ -36,8 +36,6 @@ export default function Sidebar() {
   const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutMenu, setShowLogoutMenu] = useState(false)
-  const [userName, setUserName] = useState<string>('')
-  const [companyName, setCompanyName] = useState<string>('法人AI')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
@@ -47,13 +45,15 @@ export default function Sidebar() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(256)
   const [isResizing, setIsResizing] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const { isMobileOpen, closeMobileSidebar } = useSidebarStore()
+
+  // AuthContextのprofileからユーザー名と企業名を取得
+  const userName = profile?.userName || ''
+  const companyName = profile?.companyName || '法人AI'
 
   useEffect(() => {
     if (user) {
-      fetchUserName()
-      fetchCompanyName()
       fetchConversations()
     }
   }, [user])
@@ -103,38 +103,16 @@ export default function Sidebar() {
     }
   }, [isResizing])
 
-  const fetchUserName = async () => {
-    try {
-      const response = await apiGet('/api/settings?key=user_name')
-      if (response.ok) {
-        const data = await response.json()
-        setUserName(data.value || 'ユーザー')
-      }
-    } catch (error) {
-      console.error('Failed to fetch user name:', error)
-    }
-  }
-
-  const fetchCompanyName = async () => {
-    try {
-      // Supabaseから会社名を取得
-      const response = await apiGet('/api/company')
-      if (response.ok) {
-        const data = await response.json()
-        setCompanyName(data.name || '法人AI')
-      }
-    } catch (error) {
-      console.error('Failed to fetch company name:', error)
-    }
-  }
-
   const fetchConversations = async () => {
+    if (!user) return
     try {
-      const response = await apiGet('/api/chat/conversations?limit=20')
-      if (response.ok) {
-        const result = await response.json()
-        setConversations(result.data || [])
-      }
+      const result = await getConversations(user.uid)
+      // Firestoreの結果をConversation形式に変換
+      setConversations(result.map((conv: any) => ({
+        id: conv.id,
+        title: conv.title || '新しい会話',
+        updated_at: conv.updatedAt?.toISOString?.() || conv.updatedAt || new Date().toISOString()
+      })))
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     }
@@ -148,22 +126,17 @@ export default function Sidebar() {
       // 確認ダイアログを閉じる
       setDeleteConfirmId(null)
 
-      const response = await apiDelete(`/api/chat/conversations/${conversationId}`)
-      if (response.ok) {
-        // 削除した会話が現在表示中の場合、新しいチャットに移動
-        if (pathname.includes(conversationId)) {
-          router.push('/chat')
-        }
+      // Firestoreから削除
+      await firestoreDeleteConversation(conversationId)
 
-        // 成功メッセージを表示
-        setToastMessage('会話を削除しました')
-        setShowToast(true)
-      } else {
-        // 削除に失敗した場合は元に戻す
-        await fetchConversations()
-        setToastMessage('削除に失敗しました')
-        setShowToast(true)
+      // 削除した会話が現在表示中の場合、新しいチャットに移動
+      if (pathname.includes(conversationId)) {
+        router.push('/chat')
       }
+
+      // 成功メッセージを表示
+      setToastMessage('会話を削除しました')
+      setShowToast(true)
     } catch (error) {
       // エラー時は元に戻す
       await fetchConversations()
@@ -184,9 +157,9 @@ export default function Sidebar() {
       setSelectionMode(false)
       setSelectedIds(new Set())
 
-      // 並列で削除リクエストを実行
+      // 並列でFirestoreから削除
       const deletePromises = idsToDelete.map((id) =>
-        apiDelete(`/api/chat/conversations/${id}`)
+        firestoreDeleteConversation(id).then(() => ({ ok: true })).catch(() => ({ ok: false }))
       )
 
       const results = await Promise.all(deletePromises)

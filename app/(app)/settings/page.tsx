@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
-import { apiGet, apiPost } from '@/lib/api-client'
+import { doc, updateDoc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import {
   UserIcon,
   KeyIcon,
@@ -11,35 +12,29 @@ import {
   ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 
-// AIプロバイダーの定義
+// AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
   {
     id: 'anthropic',
-    name: 'Anthropic',
+    name: 'Anthropic (Claude)',
     settingKey: 'anthropic_api_key',
     placeholder: 'sk-ant-api03-xxxxxxxxxxxxxxxxxx',
     getKeyUrl: 'https://console.anthropic.com/',
+    description: 'Claude 4.5 Sonnet / Haiku を使用する場合',
   },
   {
     id: 'openai',
-    name: 'OpenAI',
+    name: 'OpenAI (GPT)',
     settingKey: 'openai_api_key',
-    placeholder: '',
+    placeholder: 'sk-xxxxxxxxxxxxxxxxxx',
     getKeyUrl: 'https://platform.openai.com/api-keys',
-  },
-  {
-    id: 'google-gemini',
-    name: 'Google Gemini',
-    settingKey: 'google_gemini_api_key',
-    placeholder: '',
-    getKeyUrl: 'https://makersuite.google.com/app/apikey',
+    description: 'GPT-5.1 を使用する場合',
   },
 ]
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const [userName, setUserName] = useState('')
-  const [companyName, setCompanyName] = useState('')
   const [selectedProvider, setSelectedProvider] = useState<typeof AI_PROVIDERS[0] | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
@@ -48,59 +43,42 @@ export default function SettingsPage() {
   const [showNameSuccess, setShowNameSuccess] = useState(false)
   const [showKeySuccess, setShowKeySuccess] = useState(false)
 
-  // ユーザー名、会社名、APIキーを取得
+  // プロフィールからユーザー名を取得
+  useEffect(() => {
+    if (!loading && profile) {
+      setUserName(profile.userName || '')
+    }
+  }, [profile, loading])
+
+  // APIキーを取得
   useEffect(() => {
     if (!loading && user) {
-      fetchUserName()
-      fetchCompanyName()
-      fetchAllApiKeys()
+      fetchApiKeys()
     }
   }, [user, loading])
 
-  const fetchUserName = async () => {
+  const fetchApiKeys = async () => {
+    if (!user) return
+
     try {
-      const response = await apiGet('/api/settings?key=user_name')
-      if (response.ok) {
-        const data = await response.json()
-        setUserName(data.value || '')
-      }
-    } catch (error) {
-      console.error('[Settings Page] Error fetching user name:', error)
-    }
-  }
+      const profileDoc = await getDoc(doc(db, 'profiles', user.uid))
+      if (profileDoc.exists()) {
+        const data = profileDoc.data()
+        const keys: Record<string, string> = {}
 
-  const fetchCompanyName = async () => {
-    try {
-      // Supabaseから会社名を取得
-      const response = await apiGet('/api/company')
-      if (response.ok) {
-        const data = await response.json()
-        setCompanyName(data.name || '')
-      }
-    } catch (error) {
-      console.error('Failed to fetch company name:', error)
-    }
-  }
-
-  const fetchAllApiKeys = async () => {
-    const keys: Record<string, string> = {}
-
-    for (const provider of AI_PROVIDERS) {
-      try {
-        const response = await apiGet(`/api/settings?key=${provider.settingKey}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.value) {
+        for (const provider of AI_PROVIDERS) {
+          const keyValue = data[provider.settingKey]
+          if (keyValue) {
             // マスク表示
-            keys[provider.settingKey] = `${data.value.substring(0, 8)}${'*'.repeat(20)}${data.value.substring(data.value.length - 4)}`
+            keys[provider.settingKey] = `${keyValue.substring(0, 8)}${'*'.repeat(20)}${keyValue.substring(keyValue.length - 4)}`
           }
         }
-      } catch (error) {
-        // エラーは無視（設定されていないだけ）
-      }
-    }
 
-    setApiKeys(keys)
+        setApiKeys(keys)
+      }
+    } catch (error) {
+      console.error('Failed to fetch API keys:', error)
+    }
   }
 
   const handleSaveName = async () => {
@@ -109,21 +87,20 @@ export default function SettingsPage() {
       return
     }
 
+    if (!user) {
+      alert('ログインしてください')
+      return
+    }
+
     setIsSavingName(true)
     try {
-      const response = await apiPost('/api/settings', {
-        key: 'user_name',
-        value: userName.trim(),
+      // Firestoreのプロフィールを更新
+      await updateDoc(doc(db, 'profiles', user.uid), {
+        userName: userName.trim(),
       })
 
-      if (response.ok) {
-        setShowNameSuccess(true)
-        setTimeout(() => setShowNameSuccess(false), 3000)
-        await fetchUserName()
-      } else {
-        const error = await response.json()
-        alert(`保存に失敗しました: ${error.error}`)
-      }
+      setShowNameSuccess(true)
+      setTimeout(() => setShowNameSuccess(false), 3000)
     } catch (error) {
       console.error('Error saving user name:', error)
       alert('保存中にエラーが発生しました')
@@ -138,23 +115,23 @@ export default function SettingsPage() {
       return
     }
 
+    if (!user) {
+      alert('ログインしてください')
+      return
+    }
+
     setIsSavingKey(true)
     try {
-      const response = await apiPost('/api/settings', {
-        key: selectedProvider.settingKey,
-        value: apiKey,
+      // Firestoreのプロフィールを更新（APIキーを保存）
+      await updateDoc(doc(db, 'profiles', user.uid), {
+        [selectedProvider.settingKey]: apiKey.trim(),
       })
 
-      if (response.ok) {
-        setShowKeySuccess(true)
-        setTimeout(() => setShowKeySuccess(false), 3000)
-        await fetchAllApiKeys()
-        setApiKey('')
-        setSelectedProvider(null)
-      } else {
-        const error = await response.json()
-        alert(`保存に失敗しました: ${error.error}`)
-      }
+      setShowKeySuccess(true)
+      setTimeout(() => setShowKeySuccess(false), 3000)
+      await fetchApiKeys()
+      setApiKey('')
+      setSelectedProvider(null)
     } catch (error) {
       console.error('Error saving API key:', error)
       alert('保存中にエラーが発生しました')
@@ -254,7 +231,7 @@ export default function SettingsPage() {
               </label>
               <input
                 type="text"
-                value={companyName}
+                value={profile?.companyName || ''}
                 disabled
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
               />
@@ -319,7 +296,7 @@ export default function SettingsPage() {
                   key={provider.id}
                   onClick={() => {
                     setSelectedProvider(provider)
-                    setApiKey(apiKeys[provider.settingKey] || '')
+                    setApiKey('')
                   }}
                   className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
                     selectedProvider?.id === provider.id
@@ -329,9 +306,12 @@ export default function SettingsPage() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 text-left">
                     <div>
                       <span className="font-bold text-gray-900">{provider.name}</span>
+                      {provider.description && (
+                        <p className="text-xs text-gray-500 mt-0.5">{provider.description}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
