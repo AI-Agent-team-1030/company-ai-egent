@@ -31,7 +31,7 @@ export async function signIn(email: string, password: string) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     return { data: { user: userCredential.user, session: { user: userCredential.user } }, error: null }
   } catch (error: any) {
-    return { data: null, error: { message: getErrorMessage(error.code) } }
+    return { data: null, error: { code: error.code, message: getErrorMessage(error.code) } }
   }
 }
 

@@ -385,3 +385,95 @@ export async function deleteDocument(documentId: string) {
     throw error
   }
 }
+
+// ========== 会社レベルのGoogleドライブ接続 ==========
+
+// 会社のGoogleドライブ接続情報
+export interface CompanyDriveConnection {
+  isConnected: boolean
+  connectedBy?: string // 接続したユーザーのUID
+  connectedByEmail?: string // 接続したユーザーのメールアドレス
+  connectedAt?: Date
+  accessToken?: string // アクセストークン（短期間有効）
+  refreshToken?: string // リフレッシュトークン（長期間有効）
+  tokenExpiresAt?: Date
+  driveFolderId?: string // 特定のフォルダのみを検索対象にする場合
+}
+
+// 会社のDrive接続情報を取得
+export async function getCompanyDriveConnection(companyId: string): Promise<CompanyDriveConnection | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'companies', companyId))
+    if (docSnap.exists()) {
+      const data = docSnap.data()
+      if (data.driveConnection) {
+        return {
+          ...data.driveConnection,
+          connectedAt: data.driveConnection.connectedAt?.toDate?.() || null,
+          tokenExpiresAt: data.driveConnection.tokenExpiresAt?.toDate?.() || null,
+        }
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Error getting company drive connection:', error)
+    return null
+  }
+}
+
+// 会社のDrive接続情報を保存
+export async function saveCompanyDriveConnection(
+  companyId: string,
+  connection: Partial<CompanyDriveConnection>
+) {
+  try {
+    const updateData: any = {
+      driveConnection: {
+        ...connection,
+        isConnected: true,
+        connectedAt: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    }
+    await updateDoc(doc(db, 'companies', companyId), updateData)
+    return true
+  } catch (error) {
+    console.error('Error saving company drive connection:', error)
+    throw error
+  }
+}
+
+// 会社のDrive接続を解除
+export async function disconnectCompanyDrive(companyId: string) {
+  try {
+    await updateDoc(doc(db, 'companies', companyId), {
+      driveConnection: {
+        isConnected: false,
+      },
+      updatedAt: serverTimestamp(),
+    })
+    return true
+  } catch (error) {
+    console.error('Error disconnecting company drive:', error)
+    throw error
+  }
+}
+
+// 会社のDriveアクセストークンを更新
+export async function updateCompanyDriveToken(
+  companyId: string,
+  accessToken: string,
+  expiresAt: Date
+) {
+  try {
+    await updateDoc(doc(db, 'companies', companyId), {
+      'driveConnection.accessToken': accessToken,
+      'driveConnection.tokenExpiresAt': Timestamp.fromDate(expiresAt),
+      updatedAt: serverTimestamp(),
+    })
+    return true
+  } catch (error) {
+    console.error('Error updating company drive token:', error)
+    throw error
+  }
+}

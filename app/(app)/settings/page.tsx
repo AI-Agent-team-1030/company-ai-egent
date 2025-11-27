@@ -15,6 +15,12 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline'
 import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken } from '@/lib/firebase-auth'
+import {
+  getCompanyDriveConnection,
+  saveCompanyDriveConnection,
+  disconnectCompanyDrive,
+  CompanyDriveConnection,
+} from '@/lib/firestore-chat'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -46,9 +52,10 @@ export default function SettingsPage() {
   const [isSavingKey, setIsSavingKey] = useState(false)
   const [showNameSuccess, setShowNameSuccess] = useState(false)
   const [showKeySuccess, setShowKeySuccess] = useState(false)
-  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+  const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
   const [isConnectingDrive, setIsConnectingDrive] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
+  const [isLoadingDriveStatus, setIsLoadingDriveStatus] = useState(true)
 
   // プロフィールからユーザー名を取得
   useEffect(() => {
@@ -64,11 +71,24 @@ export default function SettingsPage() {
     }
   }, [user, loading])
 
-  // Googleドライブ接続状態を確認
+  // 会社のGoogleドライブ接続状態を確認
   useEffect(() => {
-    const token = getGoogleDriveToken()
-    setIsGoogleDriveConnected(!!token)
-  }, [])
+    const loadDriveConnection = async () => {
+      if (!profile?.companyId) {
+        setIsLoadingDriveStatus(false)
+        return
+      }
+      try {
+        const connection = await getCompanyDriveConnection(profile.companyId)
+        setCompanyDriveConnection(connection)
+      } catch (error) {
+        console.error('Failed to load drive connection:', error)
+      } finally {
+        setIsLoadingDriveStatus(false)
+      }
+    }
+    loadDriveConnection()
+  }, [profile?.companyId])
 
   const fetchApiKeys = async () => {
     if (!user) return
@@ -153,8 +173,10 @@ export default function SettingsPage() {
     }
   }
 
-  // Googleドライブに接続
-  const handleConnectGoogleDrive = async () => {
+  // 会社のGoogleドライブに接続
+  const handleConnectCompanyDrive = async () => {
+    if (!profile?.companyId || !user) return
+
     setIsConnectingDrive(true)
     setDriveError(null)
     try {
@@ -162,7 +184,19 @@ export default function SettingsPage() {
       if (error) {
         setDriveError(error.message)
       } else if (accessToken) {
-        setIsGoogleDriveConnected(true)
+        // 会社レベルで保存
+        await saveCompanyDriveConnection(profile.companyId, {
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+        })
+        setCompanyDriveConnection({
+          isConnected: true,
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+          connectedAt: new Date(),
+        })
       }
     } catch (err: any) {
       setDriveError(err.message || 'Googleドライブへの接続に失敗しました')
@@ -171,10 +205,17 @@ export default function SettingsPage() {
     }
   }
 
-  // Googleドライブから切断
-  const handleDisconnectGoogleDrive = () => {
-    clearGoogleDriveToken()
-    setIsGoogleDriveConnected(false)
+  // 会社のGoogleドライブから切断
+  const handleDisconnectCompanyDrive = async () => {
+    if (!profile?.companyId) return
+
+    try {
+      await disconnectCompanyDrive(profile.companyId)
+      clearGoogleDriveToken()
+      setCompanyDriveConnection(null)
+    } catch (err: any) {
+      setDriveError(err.message || '切断に失敗しました')
+    }
   }
 
   // ローディング中の表示
@@ -301,7 +342,7 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* Google Drive Section */}
+        {/* Company Google Drive Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -314,39 +355,73 @@ export default function SettingsPage() {
                 <CloudIcon className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900">Googleドライブ連携</h2>
+                <h2 className="text-xl font-bold text-gray-900">会社のGoogleドライブ連携</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Googleドライブからナレッジを取り込むための連携設定
+                  会社全体で使用するGoogleドライブの連携設定（チャット時に自動検索されます）
                 </p>
               </div>
             </div>
           </div>
 
           <div className="p-6">
-            {isGoogleDriveConnected ? (
+            {isLoadingDriveStatus ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+              </div>
+            ) : companyDriveConnection?.isConnected ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <CheckCircleIcon className="w-6 h-6 text-green-600" />
                   <div className="flex-1">
                     <p className="font-medium text-green-800">Googleドライブに接続中</p>
-                    <p className="text-sm text-green-600">ナレッジボックスからドライブのファイルをインポートできます</p>
+                    <p className="text-sm text-green-600">
+                      チャットで質問すると、自動的にドライブ内を検索します
+                    </p>
                   </div>
                 </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p>
+                      <span className="font-medium">接続者:</span>{' '}
+                      {companyDriveConnection.connectedByEmail || '不明'}
+                    </p>
+                    {companyDriveConnection.connectedAt && (
+                      <p>
+                        <span className="font-medium">接続日時:</span>{' '}
+                        {new Date(companyDriveConnection.connectedAt).toLocaleString('ja-JP')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <button
-                  onClick={handleDisconnectGoogleDrive}
+                  onClick={handleDisconnectCompanyDrive}
                   className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium"
                 >
                   接続を解除
                 </button>
-                <p className="text-xs text-gray-500">
-                  ※ 接続はブラウザを閉じるまで有効です。再ログイン時は再接続が必要です。
-                </p>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs text-yellow-700">
+                    <strong>注意:</strong> アクセストークンの有効期限が切れた場合は、再接続が必要になることがあります。
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  Googleドライブに接続すると、ドライブ内のファイルをナレッジボックスにインポートできます。
+                  会社のGoogleドライブに接続すると、チャットで質問した際に自動的にドライブ内のドキュメントを検索して回答に活用します。
                 </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-2">接続すると...</h4>
+                  <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>チャットで質問すると自動でドライブを検索</li>
+                    <li>ドキュメントの内容を回答に活用</li>
+                    <li>同じ会社のメンバー全員が利用可能</li>
+                  </ul>
+                </div>
 
                 {driveError && (
                   <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
@@ -356,7 +431,7 @@ export default function SettingsPage() {
                 )}
 
                 <button
-                  onClick={handleConnectGoogleDrive}
+                  onClick={handleConnectCompanyDrive}
                   disabled={isConnectingDrive}
                   className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
@@ -368,7 +443,7 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       <LinkIcon className="w-5 h-5" />
-                      Googleドライブに接続
+                      会社のGoogleドライブに接続
                     </>
                   )}
                 </button>
@@ -376,6 +451,7 @@ export default function SettingsPage() {
                 <div className="text-xs text-gray-500 space-y-1">
                   <p>接続時にGoogleアカウントへのログインが求められます。</p>
                   <p>ドライブの読み取り権限のみを使用します（書き込みは行いません）。</p>
+                  <p>接続したアカウントのドライブが会社全体で共有されます。</p>
                 </div>
               </div>
             )}

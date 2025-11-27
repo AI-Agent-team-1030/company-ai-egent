@@ -22,6 +22,8 @@ import {
   addMessage,
   updateConversationTitle,
   getCompanyFileSearchStores,
+  getCompanyDriveConnection,
+  CompanyDriveConnection,
 } from '@/lib/firestore-chat'
 import { queryWithFileSearch, Citation, chat as geminiChat } from '@/lib/gemini-file-search'
 import { ALL_MODELS, ModelOption, DEFAULT_MODEL, BUILT_IN_GEMINI_API_KEY, chat as aiChat, AIProvider } from '@/lib/ai-providers'
@@ -56,6 +58,7 @@ function ChatContent() {
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
+  const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
@@ -79,15 +82,20 @@ function ChatContent() {
     fetchApiKeys()
   }, [user])
 
-  // File Search Storesを取得
+  // File Search StoresとDrive接続を取得
   useEffect(() => {
-    const loadStores = async () => {
+    const loadStoresAndDrive = async () => {
       if (profile?.companyId) {
+        // File Search Stores
         const stores = await getCompanyFileSearchStores(profile.companyId)
         setFileSearchStores(stores.map((s: any) => s.storeName).filter(Boolean))
+
+        // Company Drive Connection
+        const driveConnection = await getCompanyDriveConnection(profile.companyId)
+        setCompanyDriveConnection(driveConnection)
       }
     }
-    loadStores()
+    loadStoresAndDrive()
   }, [profile?.companyId])
 
   // URLパラメータから会話IDを取得
@@ -280,15 +288,56 @@ function ChatContent() {
       let aiResponse: string
       let citations: Citation[] = []
       let usedModel = selectedModel
+      let driveContext = ''
+
+      // ナレッジ検索が有効で、会社がドライブに接続している場合はドライブも検索
+      if (isKnowledgeSearchEnabled && companyDriveConnection?.isConnected && companyDriveConnection.accessToken) {
+        try {
+          const driveSearchResponse = await fetch('/api/drive/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: companyDriveConnection.accessToken,
+              query: text,
+              folderId: companyDriveConnection.driveFolderId,
+            }),
+          })
+
+          if (driveSearchResponse.ok) {
+            const driveResults = await driveSearchResponse.json()
+            if (driveResults.results && driveResults.results.length > 0) {
+              // Drive結果をコンテキストとして構築
+              driveContext = '\n\n【Googleドライブから見つかった関連情報】\n'
+              driveResults.results.forEach((result: any, index: number) => {
+                driveContext += `\n--- ${result.name} ---\n${result.content}\n`
+                // citationsにも追加
+                citations.push({
+                  title: result.name,
+                  text: result.content.slice(0, 300),
+                  uri: result.webViewLink || 'Google Drive',
+                })
+              })
+            }
+          }
+        } catch (driveError) {
+          console.error('Drive search error:', driveError)
+          // ドライブ検索エラーは無視して続行
+        }
+      }
 
       // ナレッジ検索が有効で、File Search Storesがある場合
       if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
         // Gemini File Searchを使って回答を生成（UIには検索プロセスを表示しない）
+        // Drive結果がある場合は追加のコンテキストとして渡す
+        const systemPrompt = driveContext
+          ? `日本語で回答してください。質問に対して丁寧に回答してください。${driveContext}`
+          : '日本語で回答してください。質問に対して丁寧に回答してください。'
+
         const result = await queryWithFileSearch(
           BUILT_IN_GEMINI_API_KEY,
           fileSearchStores,
           text,
-          '日本語で回答してください。質問に対して丁寧に回答してください。'
+          systemPrompt
         )
 
         if (result.error) {
@@ -296,18 +345,24 @@ function ChatContent() {
         }
 
         aiResponse = result.answer
-        citations = result.citations
+        // File Searchからのcitationsも追加
+        citations = [...citations, ...result.citations]
         usedModel = 'gemini-2.5-pro' // File SearchはGemini 2.5 Pro固定
       } else {
         // 通常のチャット（選択したプロバイダー・モデルを使用）
         const apiKey = getApiKeyForProvider(modelInfo.provider)
+
+        // Drive結果がある場合はシステムプロンプトに追加
+        const systemPrompt = driveContext
+          ? `日本語で回答してください。質問に対して丁寧に回答してください。以下の情報を参考にしてください：${driveContext}`
+          : '日本語で回答してください。質問に対して丁寧に回答してください。'
 
         const result = await aiChat(
           modelInfo.provider,
           apiKey,
           history,
           selectedModel,
-          '日本語で回答してください。質問に対して丁寧に回答してください。'
+          systemPrompt
         )
 
         if (result.error) {
@@ -814,10 +869,13 @@ function ChatContent() {
           )}
         </div>
         <div className="flex items-center justify-end mt-2 md:mt-3">
-          {/* ナレッジ検索トグル */}
+          {/* ナレッジ検索トグル（ドライブ接続時はドライブも検索） */}
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium ${isKnowledgeSearchEnabled ? 'text-green-600' : 'text-gray-500'}`}>
               ナレッジ検索
+              {companyDriveConnection?.isConnected && isKnowledgeSearchEnabled && (
+                <span className="text-blue-500 ml-1">+ Drive</span>
+              )}
             </span>
             <button
               onClick={() => setIsKnowledgeSearchEnabled(!isKnowledgeSearchEnabled)}
