@@ -451,21 +451,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p>
-                      <span className="font-medium">接続者:</span>{' '}
-                      {companyDriveConnection.connectedByEmail || '不明'}
-                    </p>
-                    {companyDriveConnection.connectedAt && (
-                      <p>
-                        <span className="font-medium">接続日時:</span>{' '}
-                        {new Date(companyDriveConnection.connectedAt).toLocaleString('ja-JP')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
                 <button
                   onClick={handleDisconnectCompanyDrive}
                   className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium"

@@ -208,6 +208,16 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+          <p className="text-gray-500 text-xs">
+            ログインすることで、
+            <Link href="/privacy" className="text-gray-600 hover:text-black underline">
+              プライバシーポリシー
+            </Link>
+            に同意したものとみなされます。
+          </p>
+        </div>
       </motion.div>
     </div>
   )
