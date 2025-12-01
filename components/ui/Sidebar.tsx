@@ -50,7 +50,7 @@ export default function Sidebar() {
 
   // AuthContextのprofileからユーザー名と企業名を取得
   const userName = profile?.userName || ''
-  const companyName = profile?.companyName || '法人AI'
+  const companyName = profile?.companyName || '社内ナレッジ検索くん'
 
   useEffect(() => {
     if (user) {

@@ -13,7 +13,7 @@
 
 ```bash
 git clone <repository-url>
-cd 法人AI素案
+cd 社内ナレッジ検索くん
 ```
 
 ### 2. 依存関係のインストール
