@@ -166,7 +166,7 @@ export default function SignupPage() {
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">新規登録</h1>
-          <p className="text-gray-600">社内AIアシスタントを始めましょう</p>
+          <p className="text-gray-600">社内ナレッジ検索くんを始めましょう</p>
         </div>
 
         {error && (

@@ -1,27 +1,23 @@
-# GCP Cloud Run デプロイガイド
+# GCP Cloud Run デプロイガイド（リポジトリ連携版）
 
-## 前提条件
+## 概要
 
-- GCP アカウントとプロジェクトが作成済み
-- `gcloud` CLI がインストール済み
-- Docker がインストール済み（ローカルテスト用）
+GitHub にプッシュするだけで自動デプロイされる構成です。
+
+```
+git push → Cloud Build（自動ビルド）→ Cloud Run（自動デプロイ）
+```
 
 ---
 
-## 1. 初期セットアップ
+## 1. 初期セットアップ（1回だけ）
 
-### 1.1 gcloud CLI の認証とプロジェクト設定
+### 1.1 gcloud CLI の認証
 
 ```bash
-# 認証
 gcloud auth login
-
-# プロジェクトIDを設定（ご自身のプロジェクトIDに置き換え）
 export PROJECT_ID="your-gcp-project-id"
 gcloud config set project $PROJECT_ID
-
-# リージョンを設定
-gcloud config set run/region asia-northeast1
 ```
 
 ### 1.2 必要な API を有効化
@@ -45,199 +41,127 @@ gcloud artifacts repositories create cloud-run-images \
 
 ---
 
-## 2. ローカルでの Docker ビルドテスト
+## 2. Secret Manager に環境変数を登録
+
+Firebase と Gemini の認証情報を Secret Manager に登録します。
 
 ```bash
-# ビルド時の環境変数を設定
-docker build \
-  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key" \
-  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com" \
-  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id" \
-  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.firebasestorage.app" \
-  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id" \
-  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id" \
-  --build-arg NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key" \
-  -t corporate-ai-agent .
+# Firebase 設定
+echo -n "your-firebase-api-key" | gcloud secrets create FIREBASE_API_KEY --data-file=-
+echo -n "your-project.firebaseapp.com" | gcloud secrets create FIREBASE_AUTH_DOMAIN --data-file=-
+echo -n "your-project-id" | gcloud secrets create FIREBASE_PROJECT_ID --data-file=-
+echo -n "your-project.firebasestorage.app" | gcloud secrets create FIREBASE_STORAGE_BUCKET --data-file=-
+echo -n "your-sender-id" | gcloud secrets create FIREBASE_MESSAGING_SENDER_ID --data-file=-
+echo -n "your-app-id" | gcloud secrets create FIREBASE_APP_ID --data-file=-
 
-# ローカルで実行テスト
-docker run -p 8080:8080 corporate-ai-agent
+# Gemini API
+echo -n "your-gemini-api-key" | gcloud secrets create GEMINI_API_KEY --data-file=-
+```
 
-# ブラウザで http://localhost:8080 にアクセスして確認
+### シークレットの更新（値を変更する場合）
+
+```bash
+echo -n "new-value" | gcloud secrets versions add FIREBASE_API_KEY --data-file=-
 ```
 
 ---
 
-## 3. 手動デプロイ（gcloud コマンド）
-
-### 3.1 イメージをビルドしてプッシュ
+## 3. Cloud Build にシークレットへのアクセス権限を付与
 
 ```bash
-# Artifact Registry に認証
-gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+# Cloud Build サービスアカウントを取得
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+CLOUD_BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
-# イメージをビルド（Cloud Build を使用）
-gcloud builds submit --tag asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/corporate-ai-agent:latest \
-  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key" \
-  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com" \
-  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id" \
-  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.firebasestorage.app" \
-  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id" \
-  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id" \
-  --build-arg NEXT_PUBLIC_GEMINI_API_KEY="your-gemini-key"
-```
+# Secret Manager へのアクセス権限を付与
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/secretmanager.secretAccessor"
 
-### 3.2 Cloud Run にデプロイ
+# Cloud Run 管理者権限を付与
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/run.admin"
 
-```bash
-gcloud run deploy corporate-ai-agent \
-  --image asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/corporate-ai-agent:latest \
-  --platform managed \
-  --region asia-northeast1 \
-  --allow-unauthenticated \
-  --memory 512Mi \
-  --cpu 1 \
-  --min-instances 0 \
-  --max-instances 10 \
-  --port 8080 \
-  --set-env-vars "NODE_ENV=production"
+# サービスアカウントユーザー権限を付与
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/iam.serviceAccountUser"
 ```
 
 ---
 
-## 4. 環境変数の設定
+## 4. GitHub リポジトリを Cloud Build に接続
 
-### 4.1 NEXT_PUBLIC_ 変数（ビルド時に埋め込み）
+### 4.1 GCP Console から接続
 
-`NEXT_PUBLIC_` で始まる変数はビルド時にバンドルに埋め込まれます。
-Dockerfile の `--build-arg` で渡す必要があります。
+1. [Cloud Build トリガー](https://console.cloud.google.com/cloud-build/triggers) を開く
+2. 「リポジトリを接続」をクリック
+3. 「GitHub（Cloud Build GitHub アプリ）」を選択
+4. GitHub で認証し、リポジトリを選択
+5. 接続完了
 
-| 変数名 | 説明 |
-|--------|------|
-| NEXT_PUBLIC_FIREBASE_API_KEY | Firebase API キー |
-| NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN | Firebase Auth ドメイン |
-| NEXT_PUBLIC_FIREBASE_PROJECT_ID | Firebase プロジェクト ID |
-| NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET | Firebase Storage バケット |
-| NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID | Firebase Messaging Sender ID |
-| NEXT_PUBLIC_FIREBASE_APP_ID | Firebase App ID |
-| NEXT_PUBLIC_GEMINI_API_KEY | Gemini API キー |
-
-### 4.2 サーバーサイド変数（ランタイム）
-
-サーバーサイドのみで使用する変数は `--set-env-vars` で設定します：
+### 4.2 トリガーを作成
 
 ```bash
-gcloud run deploy corporate-ai-agent \
-  --set-env-vars "FIREBASE_ADMIN_SDK=your-admin-sdk-json"
+gcloud builds triggers create github \
+  --repo-name="your-repo-name" \
+  --repo-owner="your-github-username" \
+  --branch-pattern="^main$" \
+  --build-config="cloudbuild.yaml" \
+  --description="Deploy to Cloud Run on push to main"
 ```
 
-### 4.3 Secret Manager を使った機密情報管理（推奨）
+または GCP Console から：
 
-```bash
-# シークレットを作成
-echo -n "your-secret-value" | gcloud secrets create FIREBASE_ADMIN_SDK --data-file=-
-
-# Cloud Run にシークレットを紐付け
-gcloud run deploy corporate-ai-agent \
-  --set-secrets "FIREBASE_ADMIN_SDK=FIREBASE_ADMIN_SDK:latest"
-```
+1. 「トリガーを作成」をクリック
+2. 名前: `deploy-to-cloud-run`
+3. イベント: 「ブランチにプッシュ」
+4. ソース: 接続した GitHub リポジトリ
+5. ブランチ: `^main$`
+6. 構成: `cloudbuild.yaml`
+7. 「作成」
 
 ---
 
-## 5. カスタムドメインの設定
+## 5. デプロイ
 
-### 5.1 ドメインの所有権確認
+これで設定完了です。以降は `main` ブランチにプッシュするだけで自動デプロイされます。
 
 ```bash
-# ドメイン検証
-gcloud domains verify your-domain.com
+git add .
+git commit -m "Update feature"
+git push origin main
 ```
 
-### 5.2 ドメインマッピングの作成
+### ビルド状況の確認
+
+```bash
+# 最新のビルドログを確認
+gcloud builds list --limit=5
+
+# 特定のビルドの詳細ログ
+gcloud builds log BUILD_ID
+```
+
+または [Cloud Build 履歴](https://console.cloud.google.com/cloud-build/builds) で確認。
+
+---
+
+## 6. カスタムドメインの設定（任意）
+
+### 6.1 ドメインマッピング
 
 ```bash
 gcloud run domain-mappings create \
-  --service corporate-ai-agent \
+  --service knowledge-search-kun \
   --domain your-domain.com \
   --region asia-northeast1
 ```
 
-### 5.3 DNS レコードの設定
+### 6.2 DNS 設定
 
-上記コマンド実行後に表示される DNS レコードを、
-ドメインの DNS 設定に追加します：
-
-| タイプ | ホスト | 値 |
-|--------|--------|-----|
-| A/AAAA | @ | (表示されるIPアドレス) |
-| CNAME | www | ghs.googlehosted.com |
-
-※ 反映まで最大48時間かかる場合があります。
-
----
-
-## 6. GitHub Actions による自動デプロイ（オプション）
-
-`.github/workflows/deploy.yml` を作成：
-
-```yaml
-name: Deploy to Cloud Run
-
-on:
-  push:
-    branches:
-      - main
-
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: corporate-ai-agent
-  REGION: asia-northeast1
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Google Auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev
-
-      - name: Build and Push
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
-            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${{ secrets.FIREBASE_AUTH_DOMAIN }}" \
-            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
-            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="${{ secrets.FIREBASE_STORAGE_BUCKET }}" \
-            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" \
-            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="${{ secrets.FIREBASE_APP_ID }}" \
-            --build-arg NEXT_PUBLIC_GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/$SERVICE_NAME:${{ github.sha }} \
-            .
-          docker push asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/$SERVICE_NAME:${{ github.sha }}
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy $SERVICE_NAME \
-            --image asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/$SERVICE_NAME:${{ github.sha }} \
-            --region $REGION \
-            --platform managed \
-            --allow-unauthenticated
-```
+表示される DNS レコードをドメイン管理画面で設定してください。
 
 ---
 
@@ -245,79 +169,59 @@ jobs:
 
 ```bash
 # 最新のログを表示
-gcloud run services logs read corporate-ai-agent --region asia-northeast1
+gcloud run services logs read knowledge-search-kun --region asia-northeast1
 
-# リアルタイムでログを監視
-gcloud run services logs tail corporate-ai-agent --region asia-northeast1
-
-# Cloud Console でログを確認
-# https://console.cloud.google.com/run/detail/asia-northeast1/corporate-ai-agent/logs
+# リアルタイム監視
+gcloud run services logs tail knowledge-search-kun --region asia-northeast1
 ```
 
 ---
 
-## 8. セキュリティ情報（提案書用）
+## 8. トラブルシューティング
 
-本システムは以下のセキュリティ基準を満たす環境で運用されます：
-
-| 項目 | 詳細 |
-|------|------|
-| **リージョン** | GCP 東京リージョン（asia-northeast1） |
-| **通信暗号化** | 全通信は TLS 1.3 で暗号化 |
-| **認証基盤** | Firebase Authentication（Google 認証基盤） |
-| **データ保護** | Firestore / Storage はすべて暗号化保存 |
-| **認証資格** | ISO 27001, SOC 1/2/3, PCI DSS 認証取得済み |
-| **コンプライアンス** | GDPR, HIPAA 対応可能 |
-| **インフラ** | Google Cloud Platform のマネージドサービス |
-
-### セキュリティのポイント
-
-1. **ゼロトラストネットワーク**: Cloud Run はリクエストごとに認証可能
-2. **自動スケーリング**: DDoS 攻撃への耐性
-3. **コンテナ分離**: 各リクエストは独立したコンテナで処理
-4. **Secret Manager**: 機密情報は暗号化して管理
-5. **IAM**: 最小権限の原則に基づくアクセス制御
-
----
-
-## 9. コスト目安
-
-### Cloud Run 無料枠（毎月）
-
-| リソース | 無料枠 |
-|----------|--------|
-| CPU | 180,000 vCPU 秒 |
-| メモリ | 360,000 GiB 秒 |
-| リクエスト | 200万リクエスト |
-| ネットワーク | 1 GB（北米のみ） |
-
-### 小規模利用の場合
-
-- 月間1万PV程度: **ほぼ無料枠内**
-- 月間10万PV程度: **$5-15/月程度**
-
----
-
-## トラブルシューティング
-
-### ビルドエラー: standalone ディレクトリが見つからない
+### ビルドが失敗する
 
 ```bash
-# next.config.js に output: 'standalone' が設定されているか確認
-cat next.config.js
+# ビルドログを確認
+gcloud builds log $(gcloud builds list --limit=1 --format='value(id)')
+```
+
+### シークレットにアクセスできない
+
+```bash
+# 権限を再確認
+gcloud projects get-iam-policy $PROJECT_ID \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:cloudbuild.gserviceaccount.com"
 ```
 
 ### デプロイ後に 502 エラー
 
 ```bash
-# ログを確認
-gcloud run services logs read corporate-ai-agent --region asia-northeast1 --limit 50
-
-# メモリ不足の可能性がある場合
-gcloud run services update corporate-ai-agent --memory 1Gi --region asia-northeast1
+# メモリを増やす
+gcloud run services update knowledge-search-kun \
+  --memory 1Gi \
+  --region asia-northeast1
 ```
 
-### 環境変数が読み込まれない
+---
 
-- `NEXT_PUBLIC_` 変数はビルド時に `--build-arg` で渡す必要あり
-- サーバーサイド変数は `--set-env-vars` で設定
+## 9. 手動デプロイ（緊急時）
+
+自動デプロイを待たずに手動でビルド・デプロイする場合：
+
+```bash
+gcloud builds submit --config=cloudbuild.yaml
+```
+
+---
+
+## クイックリファレンス
+
+| 操作 | コマンド |
+|-----|---------|
+| デプロイ | `git push origin main` |
+| ビルド状況確認 | `gcloud builds list --limit=5` |
+| ログ確認 | `gcloud run services logs read knowledge-search-kun --region asia-northeast1` |
+| 手動ビルド | `gcloud builds submit --config=cloudbuild.yaml` |
+| サービス状態確認 | `gcloud run services describe knowledge-search-kun --region asia-northeast1` |
