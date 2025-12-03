@@ -6,8 +6,8 @@ steps:
       - '-c'
       - |
         docker build \
-          -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search-kun:$SHORT_SHA \
-          -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search-kun:latest \
+          -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search:$SHORT_SHA \
+          -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search:latest \
           --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=$$FIREBASE_API_KEY \
           --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$$FIREBASE_AUTH_DOMAIN \
           --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=$$FIREBASE_PROJECT_ID \
@@ -29,12 +29,12 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search-kun:$SHORT_SHA'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search:$SHORT_SHA'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search-kun:latest'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search:latest'
 
   # Step 3: Cloud Run にデプロイ
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -42,9 +42,9 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'knowledge-search-kun'
+      - 'knowledge-search'
       - '--image'
-      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search-kun:$SHORT_SHA'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-images/knowledge-search:$SHORT_SHA'
       - '--region'
       - 'asia-northeast1'
       - '--platform'
