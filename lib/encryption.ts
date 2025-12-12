@@ -56,10 +56,14 @@ export function isSensitiveKey(key: string): boolean {
   const sensitiveKeys = [
     'anthropic_api_key',
     'openai_api_key',
+    'gemini_api_key',
+    'google_gemini_api_key',
     'api_key',
     'secret',
     'password',
     'token',
+    'access_token',
+    'refresh_token',
   ]
 
   return sensitiveKeys.some(sensitive =>

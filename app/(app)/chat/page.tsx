@@ -23,9 +23,11 @@ import {
   updateConversationTitle,
   getCompanyFileSearchStores,
   getCompanyDriveConnection,
+  getCompanyDriveSyncStatus,
+  getDocuments,
   CompanyDriveConnection,
 } from '@/lib/firestore-chat'
-import { queryWithFileSearch, Citation, chat as geminiChat } from '@/lib/gemini-file-search'
+import { queryWithFileSearch, Citation, chat as geminiChat, generateSearchQuery, listStores } from '@/lib/gemini-file-search'
 import { ALL_MODELS, ModelOption, DEFAULT_MODEL, BUILT_IN_GEMINI_API_KEY, chat as aiChat, AIProvider } from '@/lib/ai-providers'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -60,6 +62,7 @@ function ChatContent() {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
+  const [documentNameMap, setDocumentNameMap] = useState<Record<string, string>>({}) // geminiFileName -> originalFileName
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -88,13 +91,50 @@ function ChatContent() {
   useEffect(() => {
     const loadStoresAndDrive = async () => {
       if (profile?.companyId) {
-        // File Search Stores
-        const stores = await getCompanyFileSearchStores(profile.companyId)
-        setFileSearchStores(stores.map((s: any) => s.storeName).filter(Boolean))
+        // Firestoreから取得
+        const firestoreStores = await getCompanyFileSearchStores(profile.companyId)
+        const firestoreStoreNames = firestoreStores.map((s: any) => s.storeName).filter(Boolean)
+        console.log('[Chat] Firestore File Search Stores:', firestoreStoreNames)
+
+        // Gemini APIから直接ストア一覧を取得（Firestoreに登録漏れがある場合に対応）
+        let geminiStoreNames: string[] = []
+        if (BUILT_IN_GEMINI_API_KEY) {
+          const geminiStoresResult = await listStores(BUILT_IN_GEMINI_API_KEY)
+          if (!geminiStoresResult.error) {
+            geminiStoreNames = geminiStoresResult.stores.map(s => s.name).filter(Boolean)
+            console.log('[Chat] Gemini API Stores:', geminiStoreNames)
+          }
+        }
+
+        // Drive同期状態からStoreNameも取得（念のため）
+        const driveSyncStatus = await getCompanyDriveSyncStatus(profile.companyId)
+        console.log('[Chat] Drive Sync Status:', driveSyncStatus)
+
+        // すべてのストアをマージ（重複排除）
+        const allStoreNames = Array.from(new Set([
+          ...firestoreStoreNames,
+          ...geminiStoreNames,
+          ...(driveSyncStatus?.driveStoreName ? [driveSyncStatus.driveStoreName] : [])
+        ]))
+
+        console.log('[Chat] Final Store Names:', allStoreNames)
+        setFileSearchStores(allStoreNames)
 
         // Company Drive Connection
         const driveConnection = await getCompanyDriveConnection(profile.companyId)
+        console.log('[Chat] Drive Connection:', driveConnection)
         setCompanyDriveConnection(driveConnection)
+
+        // ドキュメント名マッピングを取得（geminiFileName -> originalFileName）
+        const documents = await getDocuments(profile.companyId)
+        const nameMap: Record<string, string> = {}
+        documents.forEach((doc: any) => {
+          if (doc.geminiFileName && doc.originalFileName) {
+            nameMap[doc.geminiFileName] = doc.originalFileName
+          }
+        })
+        console.log('[Chat] Document Name Map:', nameMap)
+        setDocumentNameMap(nameMap)
       }
     }
     loadStoresAndDrive()
@@ -137,16 +177,24 @@ function ChatContent() {
   const loadExistingConversation = async (id: string) => {
     try {
       const loadedMessages = await getMessages(id)
+      console.log('[Chat] Loaded messages:', loadedMessages)
       if (loadedMessages.length > 0) {
         setConversationId(id)
-        setMessages(loadedMessages.map((m: any) => ({
+        const mappedMessages = loadedMessages.map((m: any) => ({
           id: m.id,
           role: m.role,
           content: m.content,
           timestamp: m.createdAt,
-          citations: m.citations,
+          // 引用にsourceがない場合はデフォルトで'knowledge'を設定
+          citations: m.citations?.map((c: any) => ({
+            ...c,
+            source: c.source || 'knowledge'
+          })),
           provider: m.provider,
-        })))
+          showCitations: true, // 既存のメッセージは引用を表示
+        }))
+        console.log('[Chat] Mapped messages with citations:', mappedMessages.filter((m: any) => m.citations?.length > 0))
+        setMessages(mappedMessages)
         const latestAi = [...loadedMessages].reverse().find((m: any) => m.role === 'assistant')
         if (latestAi) setCurrentAiMessageId(latestAi.id)
       } else {
@@ -154,6 +202,7 @@ function ChatContent() {
         router.push('/chat')
       }
     } catch (err) {
+      console.error('[Chat] Error loading conversation:', err)
       resetChat()
       router.push('/chat')
     }
@@ -304,6 +353,19 @@ function ChatContent() {
       let usedModel = selectedModel
       let driveContext = ''
 
+      // AIに最適な検索クエリを生成させる（Query Rewriting）
+      let optimizedQuery = text
+      if (isKnowledgeSearchEnabled && (fileSearchStores.length > 0 || companyDriveConnection?.isConnected)) {
+        const queryResult = await generateSearchQuery(
+          BUILT_IN_GEMINI_API_KEY,
+          text,
+          history.slice(0, -1) // 現在の質問は含めない
+        )
+        if (!queryResult.error) {
+          optimizedQuery = queryResult.query
+        }
+      }
+
       // ナレッジ検索が有効で、会社がドライブに接続している場合はドライブも検索
       if (isKnowledgeSearchEnabled && companyDriveConnection?.isConnected && companyDriveConnection.accessToken) {
         try {
@@ -312,7 +374,7 @@ function ChatContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               accessToken: companyDriveConnection.accessToken,
-              query: text,
+              query: optimizedQuery, // AIが生成した最適なクエリを使用
               folderId: companyDriveConnection.driveFolderId,
             }),
           })
@@ -342,22 +404,51 @@ function ChatContent() {
 
       // ナレッジ検索でコンテキストを取得（File Searchがある場合）
       let knowledgeContext = ''
+      console.log('[Chat] Knowledge search check:', {
+        isKnowledgeSearchEnabled,
+        fileSearchStoresCount: fileSearchStores.length,
+        fileSearchStores,
+        hasKnowledgeApiKey,
+      })
       if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
         try {
+          console.log('[Chat] Running File Search with query:', optimizedQuery)
           const searchResult = await queryWithFileSearch(
             BUILT_IN_GEMINI_API_KEY,
             fileSearchStores,
-            text,
+            optimizedQuery, // AIが生成した最適なクエリを使用
             '関連する情報を検索してください'
           )
+          console.log('[Chat] File Search result:', searchResult)
 
           if (!searchResult.error && searchResult.citations.length > 0) {
             // ナレッジからのコンテキストを構築
             knowledgeContext = '\n\n【社内ナレッジから見つかった関連情報】\n'
             searchResult.citations.forEach((citation: any) => {
-              knowledgeContext += `\n--- ${citation.title} ---\n${citation.text}\n`
+              // ドキュメント名マッピングからオリジナルのファイル名を取得
+              let displayTitle = citation.title
+
+              // URIからファイル名を抽出してマッピングを試みる
+              if (citation.uri) {
+                // URIから files/xxx 部分を抽出
+                const fileNameMatch = citation.uri.match(/files\/([^/?]+)/)
+                if (fileNameMatch) {
+                  const geminiFileName = `files/${fileNameMatch[1]}`
+                  if (documentNameMap[geminiFileName]) {
+                    displayTitle = documentNameMap[geminiFileName]
+                  }
+                }
+              }
+
+              // タイトル自体がfiles/xxxの形式の場合もチェック
+              if (displayTitle.startsWith('files/') && documentNameMap[displayTitle]) {
+                displayTitle = documentNameMap[displayTitle]
+              }
+
+              knowledgeContext += `\n--- ${displayTitle} ---\n${citation.text}\n`
               citations.push({
                 ...citation,
+                title: displayTitle,
                 source: 'knowledge',
               })
             })
@@ -366,6 +457,8 @@ function ChatContent() {
           console.error('Knowledge search error:', searchError)
           // 検索エラーは無視して続行
         }
+      } else {
+        console.log('[Chat] Skipping knowledge search - conditions not met')
       }
 
       // 選択したモデルで回答を生成
@@ -422,6 +515,7 @@ function ChatContent() {
         alternatives: [aiResponse],
         currentAlternativeIndex: 0,
         model: usedModel,
+        showCitations: false, // タイピング完了後にtrueにする
       }
 
       setMessages(prev => [...prev, initialAiMessage])
@@ -803,8 +897,17 @@ function ChatContent() {
                 </div>
 
                 {/* Citations - タイピング完了後に一気に表示 */}
-                {message.citations && message.citations.length > 0 && (message.showCitations !== false) && (
-                  <div className={`mt-3 space-y-2 ${message.showCitations === true ? 'animate-slideUp' : ''}`}>
+                {(() => {
+                  console.log('[Chat] Citation check for message:', message.id, {
+                    hasCitations: !!message.citations,
+                    citationsLength: message.citations?.length,
+                    showCitations: message.showCitations,
+                    citations: message.citations
+                  })
+                  return null
+                })()}
+                {message.citations && message.citations.length > 0 && message.showCitations === true && (
+                  <div className="mt-3 space-y-2 animate-slideUp">
                     <p className="text-xs text-gray-600 font-bold mb-2">📚 参照した情報源</p>
                     {message.citations.map((citation, i) => (
                       <div

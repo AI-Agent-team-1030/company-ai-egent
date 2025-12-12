@@ -33,6 +33,9 @@ import {
   createFileSearchStore,
   uploadFile,
   importFileToStore,
+  listFiles,
+  deleteFile as deleteGeminiFile,
+  FileInfo,
 } from '@/lib/gemini-file-search'
 import { BUILT_IN_GEMINI_API_KEY } from '@/lib/ai-providers'
 
@@ -70,6 +73,7 @@ interface ProcessingStatus {
 export default function KnowledgePage() {
   const { user, profile } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
+  const [geminiFiles, setGeminiFiles] = useState<FileInfo[]>([])
   const [folders, setFolders] = useState<Folder[]>([])
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
@@ -100,14 +104,27 @@ export default function KnowledgePage() {
   }, [profile?.companyId])
 
   const fetchData = async () => {
-    if (!profile?.companyId) return
+    if (!profile?.companyId) {
+      console.log('[Knowledge] No companyId in profile:', profile)
+      return
+    }
+    console.log('[Knowledge] Fetching data for companyId:', profile.companyId)
     setLoading(true)
     try {
-      const [storesData, docsData, foldersData] = await Promise.all([
+      // FirestoreとGemini APIの両方からデータを取得
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+      const [storesData, docsData, foldersData, geminiFilesResult] = await Promise.all([
         getCompanyFileSearchStores(profile.companyId),
         getDocuments(profile.companyId),
         getFolders(profile.companyId),
+        apiKey ? listFiles(apiKey) : { files: [], error: null },
       ])
+      console.log('[Knowledge] Fetched:', {
+        stores: storesData.length,
+        docs: docsData.length,
+        folders: foldersData.length,
+        geminiFiles: geminiFilesResult.files.length
+      })
 
       setStores(storesData.map((s: any) => ({
         id: s.id,
@@ -131,6 +148,11 @@ export default function KnowledgePage() {
         companyId: f.companyId,
         parentFolderId: f.parentFolderId,
       })))
+
+      // Geminiファイルを設定（ACTIVEのもののみ）
+      if (!geminiFilesResult.error) {
+        setGeminiFiles(geminiFilesResult.files.filter(f => f.state === 'ACTIVE'))
+      }
     } catch (err: any) {
       console.error('Error fetching data:', err)
       setError(err.message)
@@ -183,12 +205,26 @@ export default function KnowledgePage() {
     }
   }
 
-  const handleDeleteDocument = async (docId: string) => {
+  const handleDeleteDocument = async (docId: string, geminiFileName?: string) => {
     if (!confirm('このドキュメントを削除しますか？')) return
 
     try {
-      await deleteDocument(docId)
-      setDocuments(prev => prev.filter(d => d.id !== docId))
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+
+      // Geminiのみのファイル（Firestoreに未登録）
+      if (docId.startsWith('gemini-') && geminiFileName && apiKey) {
+        const result = await deleteGeminiFile(apiKey, geminiFileName)
+        if (result.error) throw new Error(result.error)
+        setGeminiFiles(prev => prev.filter(f => f.name !== geminiFileName))
+      } else {
+        // Firestoreに登録されているファイル
+        // まずGeminiからも削除を試みる
+        if (geminiFileName && apiKey) {
+          await deleteGeminiFile(apiKey, geminiFileName).catch(() => {})
+        }
+        await deleteDocument(docId)
+        setDocuments(prev => prev.filter(d => d.id !== docId))
+      }
     } catch (err: any) {
       setError(err.message)
     }
@@ -309,108 +345,116 @@ export default function KnowledgePage() {
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !user || !profile?.companyId) return
+    const files = e.target.files
+    if (!files || files.length === 0 || !user || !profile?.companyId) return
 
-    const tempId = `temp-${Date.now()}`
+    const fileArray = Array.from(files)
     setUploading(true)
     setError(null)
 
-    setProcessingStatus((prev) => ({
-      ...prev,
-      [tempId]: {
-        status: 'uploading',
-        message: `${file.name} をアップロード中...`,
-        progress: 20,
-      },
-    }))
+    // 最初にストアを確認・作成
+    let storeName = stores[0]?.storeName
+    const apiKey = BUILT_IN_GEMINI_API_KEY
+    if (!apiKey) {
+      setError('Gemini APIキーが設定されていません')
+      setUploading(false)
+      return
+    }
 
-    try {
-      const apiKey = BUILT_IN_GEMINI_API_KEY
-      if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
-
-      // ストアが存在しない場合は作成
-      let storeName = stores[0]?.storeName
-      if (!storeName) {
-        setProcessingStatus((prev) => ({
-          ...prev,
-          [tempId]: { status: 'processing', message: 'ナレッジストアを作成中...', progress: 30 },
-        }))
-
+    if (!storeName) {
+      try {
         const storeResult = await createFileSearchStore(apiKey, `${profile.companyName || 'Company'} Knowledge`)
         if (storeResult.error) throw new Error(storeResult.error)
         storeName = storeResult.storeName
 
         await saveFileSearchStore(user.uid, profile.companyId, storeName, `${profile.companyName || 'Company'} Knowledge`)
         setStores(prev => [...prev, { id: Date.now().toString(), storeName, displayName: `${profile.companyName || 'Company'} Knowledge` }])
+      } catch (err: any) {
+        setError(err.message)
+        setUploading(false)
+        return
       }
-
-      // ファイルをGeminiにアップロード
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [tempId]: { status: 'processing', message: 'Gemini AIにアップロード中...', progress: 50 },
-      }))
-
-      const fileBuffer = await file.arrayBuffer()
-      const uploadResult = await uploadFile(apiKey, new Uint8Array(fileBuffer), file.name, file.type)
-      if (uploadResult.error) throw new Error(uploadResult.error)
-
-      // ストアにインポート
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [tempId]: { status: 'processing', message: 'インデックス作成中...', progress: 70 },
-      }))
-
-      const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
-      if (importResult.error) throw new Error(importResult.error)
-
-      // Firestoreに保存
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [tempId]: { status: 'processing', message: '保存中...', progress: 90 },
-      }))
-
-      await saveUploadedDocument(
-        user.uid,
-        profile.companyId,
-        file.name,
-        file.name,
-        uploadResult.fileName,
-        storeName,
-        selectedFolderId
-      )
-
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [tempId]: { status: 'completed', message: '完了！', progress: 100 },
-      }))
-
-      await fetchData()
-
-      setTimeout(() => {
-        setProcessingStatus((prev) => {
-          const { [tempId]: _, ...rest } = prev
-          return rest
-        })
-      }, 3000)
-
-      e.target.value = ''
-    } catch (err: any) {
-      setError(err.message)
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [tempId]: { status: 'error', message: `エラー: ${err.message}`, progress: 0 },
-      }))
-
-      setTimeout(() => {
-        setProcessingStatus((prev) => {
-          const { [tempId]: _, ...rest } = prev
-          return rest
-        })
-      }, 5000)
-    } finally {
-      setUploading(false)
     }
+
+    // 各ファイルを処理
+    for (const file of fileArray) {
+      const tempId = `temp-${Date.now()}-${file.name}`
+
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [tempId]: {
+          status: 'uploading',
+          message: `${file.name} をアップロード中...`,
+          progress: 20,
+        },
+      }))
+
+      try {
+        // ファイルをGeminiにアップロード
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: `${file.name} をGemini AIにアップロード中...`, progress: 50 },
+        }))
+
+        const fileBuffer = await file.arrayBuffer()
+        const uploadResult = await uploadFile(apiKey, new Uint8Array(fileBuffer), file.name, file.type)
+        if (uploadResult.error) throw new Error(uploadResult.error)
+
+        // ストアにインポート
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: `${file.name} のインデックス作成中...`, progress: 70 },
+        }))
+
+        const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+        if (importResult.error) throw new Error(importResult.error)
+
+        // Firestoreに保存
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'processing', message: `${file.name} を保存中...`, progress: 90 },
+        }))
+
+        await saveUploadedDocument(
+          user.uid,
+          profile.companyId,
+          file.name,
+          file.name,
+          uploadResult.fileName,
+          storeName,
+          selectedFolderId
+        )
+
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'completed', message: `${file.name} 完了！`, progress: 100 },
+        }))
+
+        setTimeout(() => {
+          setProcessingStatus((prev) => {
+            const { [tempId]: _, ...rest } = prev
+            return rest
+          })
+        }, 3000)
+      } catch (err: any) {
+        setError(err.message)
+        setProcessingStatus((prev) => ({
+          ...prev,
+          [tempId]: { status: 'error', message: `${file.name}: ${err.message}`, progress: 0 },
+        }))
+
+        setTimeout(() => {
+          setProcessingStatus((prev) => {
+            const { [tempId]: _, ...rest } = prev
+            return rest
+          })
+        }, 5000)
+      }
+    }
+
+    await fetchData()
+    e.target.value = ''
+    setUploading(false)
   }
 
   const getFileTypeIcon = (fileName: string) => {
@@ -425,9 +469,31 @@ export default function KnowledgePage() {
     return '📁'
   }
 
+  // FirestoreドキュメントとGeminiファイルをマージ
+  // Firestoreにあるものは優先、Geminiにのみあるものも表示
+  const mergedDocuments = (() => {
+    // Firestoreに登録されているGeminiファイル名のセット
+    const firestoreGeminiNames = new Set(documents.map(d => d.geminiFileName))
+
+    // Geminiにのみ存在するファイル（Firestoreに未登録）
+    const geminiOnlyDocs: Document[] = geminiFiles
+      .filter(f => !firestoreGeminiNames.has(f.name))
+      .map(f => ({
+        id: `gemini-${f.name}`,
+        fileName: f.displayName || f.name,
+        originalFileName: f.displayName || f.name,
+        geminiFileName: f.name,
+        storeName: '',
+        folderId: null,
+        createdAt: f.createTime ? new Date(f.createTime) : new Date(),
+      }))
+
+    return [...documents, ...geminiOnlyDocs]
+  })()
+
   const filteredDocuments = selectedFolderId
-    ? documents.filter(d => d.folderId === selectedFolderId)
-    : documents
+    ? mergedDocuments.filter(d => d.folderId === selectedFolderId)
+    : mergedDocuments
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -462,6 +528,7 @@ export default function KnowledgePage() {
               accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.gif,.webp"
               onChange={handleFileUpload}
               disabled={uploading}
+              multiple
             />
           </label>
         </div>
@@ -558,7 +625,7 @@ export default function KnowledgePage() {
           >
             <FolderOpenIcon className="w-5 h-5" />
             <span className="font-medium">すべて</span>
-            <span className="text-xs opacity-75">({documents.length})</span>
+            <span className="text-xs opacity-75">({mergedDocuments.length})</span>
           </button>
 
           {folders.map((folder) => {
@@ -608,7 +675,7 @@ export default function KnowledgePage() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">ドキュメント数</p>
-          <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{mergedDocuments.length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">フォルダ数</p>
@@ -647,11 +714,19 @@ export default function KnowledgePage() {
                     <div className="text-2xl flex-shrink-0">{getFileTypeIcon(doc.originalFileName)}</div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 text-sm truncate">{doc.originalFileName}</h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
                         <span className="flex items-center gap-1 text-green-600">
                           <CheckCircleIcon className="w-3 h-3" />
                           インデックス済み
                         </span>
+                        {doc.id.startsWith('gemini-') && (
+                          <>
+                            <span>•</span>
+                            <span className="text-blue-600">Gemini API</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' }) : '日時不明'}</span>
                         {doc.folderId && (
                           <>
                             <span>•</span>
@@ -662,7 +737,7 @@ export default function KnowledgePage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDeleteDocument(doc.id)}
+                    onClick={() => handleDeleteDocument(doc.id, doc.geminiFileName)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <TrashIcon className="w-5 h-5" />

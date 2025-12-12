@@ -303,38 +303,56 @@ match /documents/{docId} {
 #### フロントエンド
 | 技術 | バージョン | 用途 |
 |------|-----------|------|
-| Next.js | 14.x | フルスタックフレームワーク |
-| React | 18.x | UIライブラリ |
+| Next.js | 14.0.4 | フルスタックフレームワーク（App Router） |
+| React | 18.2.0 | UIライブラリ |
 | TypeScript | 5.x | 型安全な開発 |
-| Tailwind CSS | 3.x | スタイリング |
-| Framer Motion | - | アニメーション |
+| Tailwind CSS | 3.3.0 | スタイリング |
+| Framer Motion | 10.16.16 | アニメーション |
+| Zustand | 4.4.7 | 状態管理 |
+| react-markdown | 10.1.0 | Markdown表示 |
 
 #### バックエンド・インフラ
 | 技術 | 用途 |
 |------|------|
-| Firebase Authentication | ユーザー認証 |
-| Cloud Firestore | データベース |
-| Vercel | ホスティング |
-| Google Cloud | インフラ基盤 |
+| Firebase Authentication | ユーザー認証（メール/パスワード + Google OAuth） |
+| Cloud Firestore | メインデータベース |
+| Supabase | ドキュメント・チャンク保存 |
+| Supabase Storage | ファイルストレージ |
+| Google Cloud Run | アプリケーションホスティング |
+| Cloud Build | CI/CDパイプライン |
 
 #### AI・API
-| サービス | 用途 |
-|---------|------|
-| Google Generative AI | Geminiモデル、File Search |
-| Anthropic API | Claudeモデル |
-| OpenAI API | GPTモデル |
-| Google Drive API | ドライブ連携 |
+| サービス | SDK バージョン | 用途 |
+|---------|---------------|------|
+| Google Generative AI | @google/genai 1.30.0 | Geminiモデル、File Search |
+| Anthropic API | @anthropic-ai/sdk 0.68.0 | Claudeモデル |
+| OpenAI API | openai 6.9.1 | GPTモデル |
+| Google Drive API | - | ドライブ連携 |
+
+#### ファイル処理
+| ライブラリ | バージョン | 対応形式 |
+|-----------|-----------|---------|
+| pdf-parse-fork | 1.2.0 | PDF |
+| mammoth | 1.11.0 | Word (.docx) |
+| xlsx | 0.18.5 | Excel (.xlsx) |
+| officeparser | 5.2.2 | PowerPoint (.pptx) |
+| csv-parse | 6.1.0 | CSV |
+| tesseract.js | 6.0.1 | 画像OCR |
 
 ### 6.2 対応AIモデル
 
 | モデル | プロバイダー | 特徴 | APIキー |
 |--------|------------|------|---------|
-| gemini-2.5-pro | Google | デフォルト、バランス型 | 不要（標準搭載） |
-| gemini-2.5-flash | Google | 高速、軽量 | 不要（標準搭載） |
-| gemini-exp-1206 | Google | 実験版（Gemini 3） | 不要（標準搭載） |
-| claude-sonnet-4-5 | Anthropic | 高精度、詳細な回答 | 必要 |
-| claude-haiku-4-5 | Anthropic | 軽量、高速 | 必要 |
+| gemini-2.5-pro | Google | 高精度・ファイル検索対応 | 不要（標準搭載） |
+| gemini-2.5-flash | Google | 高速レスポンス | 不要（標準搭載） |
+| gemini-2.0-flash | Google | クエリ生成用 | 不要（標準搭載） |
+| gemini-exp-1206 | Google | 実験的な最新モデル | 不要（標準搭載） |
+| claude-sonnet-4-5-20250929 | Anthropic | 高精度、詳細な回答 | 必要 |
+| claude-haiku-4-5-20251001 | Anthropic | 軽量、高速 | 必要 |
+| claude-3-7-sonnet-20250219 | Anthropic | ナレッジ判定用 | 必要 |
 | gpt-5.1 | OpenAI | 汎用性が高い | 必要 |
+| gpt-4o | OpenAI | マルチモーダル対応 | 必要 |
+| gpt-5.1-mini | OpenAI | 軽量処理 | 必要 |
 
 ### 6.3 対応ファイル形式
 
@@ -660,6 +678,7 @@ match /documents/{docId} {
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2025-12-12 | 3.0 | 最新技術スタック・AIモデル・インフラ情報を更新 |
 | 2025-11-27 | 2.0 | 初版作成 |
 
 ---

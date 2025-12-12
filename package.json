@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -17,6 +19,7 @@
     "csv-parse": "^6.1.0",
     "date-fns": "^3.0.6",
     "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^10.16.16",
     "mammoth": "^1.11.0",
     "next": "14.0.4",

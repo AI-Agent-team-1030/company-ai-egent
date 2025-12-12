@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET: ナレッジ一覧取得（検索・フィルタリング対応）
 export async function GET(request: NextRequest) {
+  // 認証チェック
+  const auth = await requireAuth(request)
+  if (!auth.authorized) return auth.error
+
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
@@ -72,6 +77,10 @@ export async function GET(request: NextRequest) {
 
 // POST: 新規ナレッジ作成
 export async function POST(request: NextRequest) {
+  // 認証チェック
+  const auth = await requireAuth(request)
+  if (!auth.authorized) return auth.error
+
   try {
     const body = await request.json()
     const { title, content, category, department, tags } = body

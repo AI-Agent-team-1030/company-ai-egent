@@ -79,6 +79,58 @@ export async function importFileToStore(
   }
 }
 
+// 検索クエリを生成（Query Rewriting）
+export async function generateSearchQuery(
+  apiKey: string,
+  userQuestion: string,
+  conversationHistory: ChatMessage[] = []
+): Promise<{ query: string; error: string | null }> {
+  try {
+    const ai = createGeminiClient(apiKey)
+
+    // 会話履歴を文字列に変換（直近3ターンまで）
+    const recentHistory = conversationHistory.slice(-6)
+    const historyText = recentHistory.length > 0
+      ? recentHistory.map(m => `${m.role === 'user' ? 'ユーザー' : 'AI'}: ${m.content}`).join('\n')
+      : ''
+
+    const prompt = `あなたは社内ナレッジベースを検索するための最適なクエリを生成するアシスタントです。
+
+${historyText ? `【会話履歴】\n${historyText}\n\n` : ''}【ユーザーの質問】
+${userQuestion}
+
+上記の質問に対して、社内ナレッジベースから関連情報を見つけるための最適な検索クエリを生成してください。
+
+ルール：
+- 検索クエリのみを出力（説明不要）
+- 3〜5個のキーワードを含める
+- 「それ」「これ」などの指示語は具体的な言葉に置き換える
+- 会話の文脈を考慮して、何について聞いているのかを明確にする
+- 日本語で出力
+
+検索クエリ：`
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.1, // 低めで一貫性を重視
+        maxOutputTokens: 100,
+      },
+    })
+
+    const query = response.text?.trim() || userQuestion
+    console.log('[Query Rewriting] Original:', userQuestion)
+    console.log('[Query Rewriting] Generated:', query)
+
+    return { query, error: null }
+  } catch (error: any) {
+    console.error('Query generation error:', error)
+    // エラー時は元の質問をそのまま使用
+    return { query: userQuestion, error: error.message }
+  }
+}
+
 // File Search を使った質問応答
 export async function queryWithFileSearch(
   apiKey: string,
@@ -116,8 +168,37 @@ export async function queryWithFileSearch(
     if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
       for (const chunk of response.candidates[0].groundingMetadata.groundingChunks) {
         if (chunk.retrievedContext) {
+          // タイトルを取得（ファイルIDの場合は読みやすい形式に変換）
+          let title = chunk.retrievedContext.title || ''
+
+          // タイトルがファイルIDっぽい場合（files/xxxなど）は改善
+          if (!title || title.startsWith('files/') || title.match(/^[a-zA-Z0-9_-]+$/)) {
+            // URIから情報を取得できるか確認
+            const uri = chunk.retrievedContext.uri || ''
+            // URIにファイル名が含まれている場合があるので抽出を試みる
+            const uriMatch = uri.match(/displayName=([^&]+)/)
+            if (uriMatch) {
+              title = decodeURIComponent(uriMatch[1])
+            } else {
+              // textの最初の部分をタイトルとして使用
+              const text = chunk.retrievedContext.text || ''
+              const firstLine = text.split('\n')[0].trim()
+              if (firstLine && firstLine.length < 100) {
+                title = firstLine.length > 50 ? firstLine.substring(0, 50) + '...' : firstLine
+              } else {
+                title = 'ナレッジドキュメント'
+              }
+            }
+          }
+
+          console.log('[File Search] Citation:', {
+            originalTitle: chunk.retrievedContext.title,
+            processedTitle: title,
+            uri: chunk.retrievedContext.uri
+          })
+
           citations.push({
-            title: chunk.retrievedContext.title || 'Unknown',
+            title,
             uri: chunk.retrievedContext.uri || '',
             text: chunk.retrievedContext.text || '',
             source: 'knowledge',
@@ -210,6 +291,58 @@ export async function deleteStore(
     console.error('Delete store error:', error)
     return { success: false, error: error.message }
   }
+}
+
+// アップロード済みファイル一覧を取得
+export async function listFiles(
+  apiKey: string
+): Promise<{ files: FileInfo[]; error: string | null }> {
+  try {
+    const ai = createGeminiClient(apiKey)
+    const pager = await ai.files.list()
+
+    const files: FileInfo[] = []
+    for await (const file of pager) {
+      files.push({
+        name: file.name || '',
+        displayName: file.displayName || '',
+        mimeType: file.mimeType || '',
+        sizeBytes: file.sizeBytes || '0',
+        createTime: file.createTime || '',
+        state: file.state || '',
+      })
+    }
+
+    return { files, error: null }
+  } catch (error: any) {
+    console.error('List files error:', error)
+    return { files: [], error: error.message }
+  }
+}
+
+// ファイル削除
+export async function deleteFile(
+  apiKey: string,
+  fileName: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const ai = createGeminiClient(apiKey)
+    await ai.files.delete({ name: fileName })
+    return { success: true, error: null }
+  } catch (error: any) {
+    console.error('Delete file error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// ファイル情報
+export interface FileInfo {
+  name: string
+  displayName: string
+  mimeType: string
+  sizeBytes: string
+  createTime: string
+  state: string
 }
 
 // 型定義

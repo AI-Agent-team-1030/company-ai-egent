@@ -20,6 +20,9 @@ import {
   saveCompanyDriveConnection,
   disconnectCompanyDrive,
   CompanyDriveConnection,
+  getCompanyDriveSyncStatus,
+  resetDriveSyncStatus,
+  DriveSyncStatus,
 } from '@/lib/firestore-chat'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
@@ -58,6 +61,8 @@ export default function SettingsPage() {
   const [driveSuccess, setDriveSuccess] = useState<string | null>(null)
   const [isLoadingDriveStatus, setIsLoadingDriveStatus] = useState(true)
   const [isProcessingRedirect, setIsProcessingRedirect] = useState(false)
+  const [driveSyncStatus, setDriveSyncStatus] = useState<DriveSyncStatus | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   // プロフィールからユーザー名を取得
   useEffect(() => {
@@ -143,6 +148,15 @@ export default function SettingsPage() {
       try {
         const connection = await getCompanyDriveConnection(profile.companyId)
         setCompanyDriveConnection(connection)
+
+        // 同期状態も取得
+        const syncStatus = await getCompanyDriveSyncStatus(profile.companyId)
+        setDriveSyncStatus(syncStatus)
+
+        // 同期中の場合はポーリング開始
+        if (syncStatus?.status === 'syncing') {
+          setIsSyncing(true)
+        }
       } catch (error) {
         console.error('Failed to load drive connection:', error)
       } finally {
@@ -151,6 +165,84 @@ export default function SettingsPage() {
     }
     loadDriveConnection()
   }, [profile?.companyId])
+
+  // 同期中の場合、定期的に状態を取得
+  useEffect(() => {
+    if (!isSyncing || !profile?.companyId) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/drive/sync?companyId=${profile.companyId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setDriveSyncStatus(data.syncStatus)
+
+          // 同期完了またはエラーの場合はポーリング停止
+          if (data.syncStatus?.status === 'completed' || data.syncStatus?.status === 'error') {
+            setIsSyncing(false)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll sync status:', error)
+      }
+    }, 3000) // 3秒ごとにチェック
+
+    return () => clearInterval(pollInterval)
+  }, [isSyncing, profile?.companyId])
+
+  // Drive同期を開始
+  const startDriveSync = async () => {
+    if (!profile?.companyId || !user) {
+      console.log('[Drive Sync] Missing companyId or user:', { companyId: profile?.companyId, userId: user?.uid })
+      return
+    }
+
+    // Drive接続情報を確認
+    if (!companyDriveConnection?.accessToken) {
+      console.log('[Drive Sync] No access token in state')
+      setDriveError('Googleドライブに接続されていません。接続してください。')
+      return
+    }
+
+    console.log('[Drive Sync] Starting sync for company:', profile.companyId)
+    setIsSyncing(true)
+    setDriveError(null)
+
+    try {
+      const response = await fetch('/api/drive/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: profile.companyId,
+          userId: user.uid,
+          accessToken: companyDriveConnection.accessToken, // 直接渡す
+        }),
+      })
+
+      const data = await response.json()
+      console.log('[Drive Sync] API response:', data)
+
+      if (!response.ok) {
+        // デバッグ情報があれば表示
+        if (data.debug) {
+          console.error('[Drive Sync] Debug info:', data.debug)
+        }
+        throw new Error(data.error || '同期に失敗しました')
+      }
+
+      setDriveSyncStatus(data.status)
+
+      if (data.status?.status === 'completed') {
+        setIsSyncing(false)
+        setDriveSuccess(`${data.status.syncedFiles}件のファイルを同期しました！`)
+        setTimeout(() => setDriveSuccess(null), 5000)
+      }
+    } catch (error: any) {
+      console.error('[Drive Sync] Error:', error)
+      setDriveError(error.message)
+      setIsSyncing(false)
+    }
+  }
 
   const fetchApiKeys = async () => {
     if (!user) return
@@ -254,11 +346,24 @@ export default function SettingsPage() {
 
       if (accessToken) {
         // 会社レベルで保存
+        console.log('[Drive] Saving connection to Firestore...')
         await saveCompanyDriveConnection(profile.companyId, {
           connectedBy: user.uid,
           connectedByEmail: user.email || undefined,
           accessToken,
         })
+        console.log('[Drive] Connection saved successfully')
+
+        // Firestoreへの保存が反映されるまで少し待つ
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // 保存を確認
+        const savedConnection = await getCompanyDriveConnection(profile.companyId)
+        console.log('[Drive] Verified saved connection:', {
+          isConnected: savedConnection?.isConnected,
+          hasToken: !!savedConnection?.accessToken,
+        })
+
         setCompanyDriveConnection({
           isConnected: true,
           connectedBy: user.uid,
@@ -266,12 +371,19 @@ export default function SettingsPage() {
           accessToken,
           connectedAt: new Date(),
         })
-        setDriveSuccess('Googleドライブに接続しました！')
-        setTimeout(() => setDriveSuccess(null), 5000)
+        setDriveSuccess('Googleドライブに接続しました！ファイルの同期を開始します...')
+        setIsConnectingDrive(false)
+
+        // 接続が確認できたら同期を開始
+        if (savedConnection?.isConnected && savedConnection?.accessToken) {
+          startDriveSync()
+        } else {
+          console.error('[Drive] Connection not properly saved')
+          setDriveError('接続の保存に問題がありました。ページを更新してください。')
+        }
       }
     } catch (err: any) {
       setDriveError(err.message || 'Googleドライブへの接続に失敗しました')
-    } finally {
       setIsConnectingDrive(false)
     }
   }
@@ -282,8 +394,11 @@ export default function SettingsPage() {
 
     try {
       await disconnectCompanyDrive(profile.companyId)
+      await resetDriveSyncStatus(profile.companyId)
       clearGoogleDriveToken()
       setCompanyDriveConnection(null)
+      setDriveSyncStatus(null)
+      setIsSyncing(false)
     } catch (err: any) {
       setDriveError(err.message || '切断に失敗しました')
     }
@@ -450,6 +565,108 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* 同期状態の表示 */}
+                {driveSyncStatus && (
+                  <div className={`p-4 rounded-lg border ${
+                    driveSyncStatus.status === 'syncing'
+                      ? 'bg-blue-50 border-blue-200'
+                      : driveSyncStatus.status === 'completed'
+                      ? 'bg-green-50 border-green-200'
+                      : driveSyncStatus.status === 'error'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {driveSyncStatus.status === 'syncing' ? (
+                        <div className="w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                      ) : driveSyncStatus.status === 'completed' ? (
+                        <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                      ) : driveSyncStatus.status === 'error' ? (
+                        <XCircleIcon className="w-5 h-5 text-red-600" />
+                      ) : null}
+                      <div className="flex-1">
+                        <p className={`font-medium ${
+                          driveSyncStatus.status === 'syncing' ? 'text-blue-800' :
+                          driveSyncStatus.status === 'completed' ? 'text-green-800' :
+                          driveSyncStatus.status === 'error' ? 'text-red-800' : 'text-gray-800'
+                        }`}>
+                          {driveSyncStatus.status === 'syncing' ? 'ファイルを同期中...' :
+                           driveSyncStatus.status === 'completed' ? 'ファイル同期完了' :
+                           driveSyncStatus.status === 'error' ? '同期エラー' : '同期待機中'}
+                        </p>
+                        <p className={`text-sm ${
+                          driveSyncStatus.status === 'syncing' ? 'text-blue-600' :
+                          driveSyncStatus.status === 'completed' ? 'text-green-600' :
+                          driveSyncStatus.status === 'error' ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {driveSyncStatus.status === 'syncing'
+                            ? `${driveSyncStatus.syncedFiles} / ${driveSyncStatus.totalFiles} ファイル`
+                            : driveSyncStatus.status === 'completed'
+                            ? `${driveSyncStatus.syncedFiles}件のファイルがAI検索対象に登録されています`
+                            : driveSyncStatus.status === 'error'
+                            ? driveSyncStatus.errorMessage
+                            : ''}
+                        </p>
+                        {driveSyncStatus.lastSyncAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            最終同期: {new Date(driveSyncStatus.lastSyncAt).toLocaleString('ja-JP')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 同期ボタン */}
+                    {driveSyncStatus.status !== 'syncing' && (
+                      <button
+                        onClick={startDriveSync}
+                        disabled={isSyncing}
+                        className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300"
+                      >
+                        {isSyncing ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            同期中...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            今すぐ同期
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* 初回同期がまだの場合 */}
+                {!driveSyncStatus && !isSyncing && (
+                  <button
+                    onClick={startDriveSync}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    ファイルを同期する
+                  </button>
+                )}
+
+                {driveSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600">
+                    <CheckCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{driveSuccess}</span>
+                  </div>
+                )}
+
+                {driveError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                    <XCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{driveError}</span>
+                  </div>
+                )}
 
                 <button
                   onClick={handleDisconnectCompanyDrive}

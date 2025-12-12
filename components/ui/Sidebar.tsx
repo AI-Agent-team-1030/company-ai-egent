@@ -106,15 +106,19 @@ export default function Sidebar() {
   const fetchConversations = async () => {
     if (!user) return
     try {
+      console.log('[Sidebar] Fetching conversations for user:', user.uid)
       const result = await getConversations(user.uid)
+      console.log('[Sidebar] Fetched conversations:', result)
       // Firestoreの結果をConversation形式に変換
-      setConversations(result.map((conv: any) => ({
+      const mapped = result.map((conv: any) => ({
         id: conv.id,
         title: conv.title || '新しい会話',
         updated_at: conv.updatedAt?.toISOString?.() || conv.updatedAt || new Date().toISOString()
-      })))
+      }))
+      console.log('[Sidebar] Mapped conversations:', mapped)
+      setConversations(mapped)
     } catch (error) {
-      console.error('Failed to fetch conversations:', error)
+      console.error('[Sidebar] Failed to fetch conversations:', error)
     }
   }
 
@@ -674,19 +678,19 @@ export default function Sidebar() {
       {/* Delete Confirmation Dialog */}
       <AnimatePresence>
         {deleteConfirmId && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
-              onClick={() => setDeleteConfirmId(null)}
-            />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+            onClick={() => setDeleteConfirmId(null)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl p-6 z-50 max-w-md w-full mx-4"
+              className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-gray-900 mb-2">
                 会話を削除しますか？
@@ -709,26 +713,26 @@ export default function Sidebar() {
                 </button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Bulk Delete Confirmation Dialog */}
       <AnimatePresence>
         {showBulkDeleteConfirm && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
-              onClick={() => setShowBulkDeleteConfirm(false)}
-            />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+            onClick={() => setShowBulkDeleteConfirm(false)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl p-6 z-50 max-w-md w-full mx-4"
+              className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-gray-900 mb-2">
                 {selectedIds.size}件の会話を削除しますか？
@@ -751,7 +755,7 @@ export default function Sidebar() {
                 </button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 

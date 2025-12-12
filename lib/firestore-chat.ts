@@ -6,6 +6,7 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -435,7 +436,8 @@ export async function saveCompanyDriveConnection(
       },
       updatedAt: serverTimestamp(),
     }
-    await updateDoc(doc(db, 'companies', companyId), updateData)
+    // setDoc + merge: true でドキュメントがなくても作成される
+    await setDoc(doc(db, 'companies', companyId), updateData, { merge: true })
     return true
   } catch (error) {
     console.error('Error saving company drive connection:', error)
@@ -446,12 +448,12 @@ export async function saveCompanyDriveConnection(
 // 会社のDrive接続を解除
 export async function disconnectCompanyDrive(companyId: string) {
   try {
-    await updateDoc(doc(db, 'companies', companyId), {
+    await setDoc(doc(db, 'companies', companyId), {
       driveConnection: {
         isConnected: false,
       },
       updatedAt: serverTimestamp(),
-    })
+    }, { merge: true })
     return true
   } catch (error) {
     console.error('Error disconnecting company drive:', error)
@@ -474,6 +476,122 @@ export async function updateCompanyDriveToken(
     return true
   } catch (error) {
     console.error('Error updating company drive token:', error)
+    throw error
+  }
+}
+
+// ========== Drive同期状態管理 ==========
+
+// Drive同期状態の型定義
+export interface DriveSyncStatus {
+  status: 'idle' | 'syncing' | 'completed' | 'error'
+  lastSyncAt?: Date
+  totalFiles: number
+  syncedFiles: number
+  driveStoreName?: string
+  syncedFileIds: string[]
+  errorMessage?: string
+}
+
+// 会社のDrive同期状態を取得
+export async function getCompanyDriveSyncStatus(companyId: string): Promise<DriveSyncStatus | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'companies', companyId))
+    if (docSnap.exists()) {
+      const data = docSnap.data()
+      if (data.driveSyncStatus) {
+        return {
+          ...data.driveSyncStatus,
+          lastSyncAt: data.driveSyncStatus.lastSyncAt?.toDate?.() || null,
+        }
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Error getting company drive sync status:', error)
+    return null
+  }
+}
+
+// 会社のDrive同期状態を更新
+export async function updateCompanyDriveSyncStatus(
+  companyId: string,
+  status: Partial<DriveSyncStatus>
+) {
+  try {
+    const updateData: any = {
+      updatedAt: serverTimestamp(),
+    }
+
+    // 各フィールドを個別に更新（マージ）
+    if (status.status !== undefined) {
+      updateData['driveSyncStatus.status'] = status.status
+    }
+    if (status.totalFiles !== undefined) {
+      updateData['driveSyncStatus.totalFiles'] = status.totalFiles
+    }
+    if (status.syncedFiles !== undefined) {
+      updateData['driveSyncStatus.syncedFiles'] = status.syncedFiles
+    }
+    if (status.driveStoreName !== undefined) {
+      updateData['driveSyncStatus.driveStoreName'] = status.driveStoreName
+    }
+    if (status.syncedFileIds !== undefined) {
+      updateData['driveSyncStatus.syncedFileIds'] = status.syncedFileIds
+    }
+    if (status.errorMessage !== undefined) {
+      updateData['driveSyncStatus.errorMessage'] = status.errorMessage
+    }
+    if (status.lastSyncAt !== undefined) {
+      updateData['driveSyncStatus.lastSyncAt'] = Timestamp.fromDate(status.lastSyncAt)
+    }
+
+    // setDoc + merge: true でドキュメントがなくても作成される
+    await setDoc(doc(db, 'companies', companyId), updateData, { merge: true })
+    return true
+  } catch (error) {
+    console.error('Error updating company drive sync status:', error)
+    throw error
+  }
+}
+
+// Drive同期状態を初期化
+export async function initializeDriveSyncStatus(companyId: string) {
+  try {
+    await setDoc(doc(db, 'companies', companyId), {
+      driveSyncStatus: {
+        status: 'idle',
+        totalFiles: 0,
+        syncedFiles: 0,
+        syncedFileIds: [],
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+    return true
+  } catch (error) {
+    console.error('Error initializing drive sync status:', error)
+    throw error
+  }
+}
+
+// Drive同期状態をリセット（接続解除時）
+export async function resetDriveSyncStatus(companyId: string) {
+  try {
+    await setDoc(doc(db, 'companies', companyId), {
+      driveSyncStatus: {
+        status: 'idle',
+        totalFiles: 0,
+        syncedFiles: 0,
+        syncedFileIds: [],
+        driveStoreName: null,
+        lastSyncAt: null,
+        errorMessage: null,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+    return true
+  } catch (error) {
+    console.error('Error resetting drive sync status:', error)
     throw error
   }
 }

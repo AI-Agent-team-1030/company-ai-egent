@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { requireAuth } from '@/lib/api-auth'
+import { checkStrictRateLimit } from '@/lib/rate-limit'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,6 +10,14 @@ const anthropic = new Anthropic({
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  // Rate Limitチェック
+  const rateLimit = checkStrictRateLimit(req)
+  if (!rateLimit.allowed) return rateLimit.error
+
+  // 認証チェック
+  const auth = await requireAuth(req)
+  if (!auth.authorized) return auth.error
+
   try {
     const { goal, details } = await req.json()
 
