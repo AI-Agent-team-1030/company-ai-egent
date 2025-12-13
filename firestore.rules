@@ -48,11 +48,13 @@ service cloud.firestore {
         && request.auth.uid == userId;
     }
 
-    // 企業情報 - 認証済みユーザーは読み取り可能、作成は認証済みのみ
+    // 企業情報 - 同じ会社のユーザーのみアクセス可能
     match /companies/{companyId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
       allow create: if request.auth != null;
-      allow update: if request.auth != null
+      allow write: if request.auth != null
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
     }
