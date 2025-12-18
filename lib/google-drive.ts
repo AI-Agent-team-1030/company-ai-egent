@@ -1,8 +1,19 @@
 // Googleドライブ連携ライブラリ
 
-import { getGoogleDriveToken } from './firebase-auth'
-
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3'
+
+// グローバルにアクセストークンを保持（会社レベルのトークンを設定可能）
+let globalAccessToken: string | null = null
+
+// アクセストークンを設定
+export function setDriveAccessToken(token: string | null): void {
+  globalAccessToken = token
+}
+
+// 現在のアクセストークンを取得
+export function getDriveAccessToken(): string | null {
+  return globalAccessToken
+}
 
 // ドライブファイルの型定義
 export interface DriveFile {
@@ -22,19 +33,65 @@ interface ListFilesResponse {
   nextPageToken?: string
 }
 
+// 共有ドライブの型定義
+export interface SharedDrive {
+  id: string
+  name: string
+  kind: string
+}
+
+// 共有ドライブ一覧のレスポンス
+interface ListDrivesResponse {
+  drives: SharedDrive[]
+  nextPageToken?: string
+}
+
 // アクセストークンを取得（エラーチェック付き）
-function getAccessToken(): string {
-  const token = getGoogleDriveToken()
+function getAccessToken(providedToken?: string): string {
+  const token = providedToken || globalAccessToken
   if (!token) {
     throw new Error('Googleドライブに接続されていません。設定から接続してください。')
   }
   return token
 }
 
+// 共有ドライブ一覧を取得
+export async function listSharedDrives(
+  pageToken?: string
+): Promise<ListDrivesResponse> {
+  const accessToken = getAccessToken()
+
+  const params = new URLSearchParams({
+    pageSize: '50',
+    fields: 'nextPageToken, drives(id, name, kind)',
+  })
+
+  if (pageToken) {
+    params.append('pageToken', pageToken)
+  }
+
+  const response = await fetch(`${DRIVE_API_BASE}/drives?${params}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('認証の有効期限が切れました。再度Googleドライブに接続してください。')
+    }
+    throw new Error('共有ドライブ一覧の取得に失敗しました')
+  }
+
+  return response.json()
+}
+
 // ドライブのファイル一覧を取得
+// driveId: 共有ドライブのID（指定しない場合はマイドライブ）
 export async function listDriveFiles(
   folderId?: string,
-  pageToken?: string
+  pageToken?: string,
+  driveId?: string
 ): Promise<ListFilesResponse> {
   const accessToken = getAccessToken()
 
@@ -42,6 +99,9 @@ export async function listDriveFiles(
   let q = 'trashed = false'
   if (folderId) {
     q = `'${folderId}' in parents and ${q}`
+  } else if (driveId) {
+    // 共有ドライブのルート
+    q = `'${driveId}' in parents and ${q}`
   } else {
     q = `'root' in parents and ${q}`
   }
@@ -51,7 +111,14 @@ export async function listDriveFiles(
     fields: 'nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, iconLink, webViewLink)',
     q,
     orderBy: 'folder,name',
+    supportsAllDrives: 'true',
+    includeItemsFromAllDrives: 'true',
   })
+
+  if (driveId) {
+    params.append('driveId', driveId)
+    params.append('corpora', 'drive')
+  }
 
   if (pageToken) {
     params.append('pageToken', pageToken)
@@ -78,7 +145,7 @@ export async function downloadDriveFile(fileId: string): Promise<Blob> {
   const accessToken = getAccessToken()
 
   const response = await fetch(
-    `${DRIVE_API_BASE}/files/${fileId}?alt=media`,
+    `${DRIVE_API_BASE}/files/${fileId}?alt=media&supportsAllDrives=true`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -150,7 +217,7 @@ export async function getDriveFile(fileId: string): Promise<DriveFile> {
   const accessToken = getAccessToken()
 
   const response = await fetch(
-    `${DRIVE_API_BASE}/files/${fileId}?fields=id,name,mimeType,size,modifiedTime,thumbnailLink,iconLink,webViewLink`,
+    `${DRIVE_API_BASE}/files/${fileId}?fields=id,name,mimeType,size,modifiedTime,thumbnailLink,iconLink,webViewLink&supportsAllDrives=true`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,

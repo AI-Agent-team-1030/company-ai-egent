@@ -27,7 +27,7 @@ import {
   getDocuments,
   CompanyDriveConnection,
 } from '@/lib/firestore-chat'
-import { queryWithFileSearch, Citation, chat as geminiChat, generateSearchQuery, listStores } from '@/lib/gemini-file-search'
+import { queryWithFileSearch, Citation, chat as geminiChat, generateSearchQuery, advancedKnowledgeSearch } from '@/lib/gemini-file-search'
 import { ALL_MODELS, ModelOption, DEFAULT_MODEL, BUILT_IN_GEMINI_API_KEY, chat as aiChat, AIProvider } from '@/lib/ai-providers'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -91,34 +91,29 @@ function ChatContent() {
   useEffect(() => {
     const loadStoresAndDrive = async () => {
       if (profile?.companyId) {
-        // Firestoreから取得
+        // Firestoreから会社のストアのみを取得（セキュリティ: 会社間分離）
         const firestoreStores = await getCompanyFileSearchStores(profile.companyId)
         const firestoreStoreNames = firestoreStores.map((s: any) => s.storeName).filter(Boolean)
-        console.log('[Chat] Firestore File Search Stores:', firestoreStoreNames)
+        console.log('[Chat] Firestore File Search Stores (company filtered):', firestoreStoreNames)
 
-        // Gemini APIから直接ストア一覧を取得（Firestoreに登録漏れがある場合に対応）
-        let geminiStoreNames: string[] = []
-        if (BUILT_IN_GEMINI_API_KEY) {
-          const geminiStoresResult = await listStores(BUILT_IN_GEMINI_API_KEY)
-          if (!geminiStoresResult.error) {
-            geminiStoreNames = geminiStoresResult.stores.map(s => s.name).filter(Boolean)
-            console.log('[Chat] Gemini API Stores:', geminiStoreNames)
-          }
-        }
+        // 注意: Gemini APIのlistStores()は全ストアを返すため使用しない
+        // 会社ごとの分離はFirestoreで管理されたストア名のみを使用することで実現
 
         // Drive同期状態からStoreNameも取得（念のため）
         const driveSyncStatus = await getCompanyDriveSyncStatus(profile.companyId)
         console.log('[Chat] Drive Sync Status:', driveSyncStatus)
 
-        // すべてのストアをマージ（重複排除）
+        // 会社に紐づくストアのみをマージ（重複排除）
+        // セキュリティ: Firestoreで管理されたストアのみを使用
         const allStoreNames = Array.from(new Set([
           ...firestoreStoreNames,
-          ...geminiStoreNames,
           ...(driveSyncStatus?.driveStoreName ? [driveSyncStatus.driveStoreName] : [])
         ]))
 
-        console.log('[Chat] Final Store Names:', allStoreNames)
-        setFileSearchStores(allStoreNames)
+        // Gemini APIは最大5個のストアまで対応（制限を超えるとエラー）
+        const limitedStoreNames = allStoreNames.slice(0, 5)
+        console.log('[Chat] Final Store Names (limited to 5, company only):', limitedStoreNames)
+        setFileSearchStores(limitedStoreNames)
 
         // Company Drive Connection
         const driveConnection = await getCompanyDriveConnection(profile.companyId)
@@ -353,9 +348,11 @@ function ChatContent() {
       let usedModel = selectedModel
       let driveContext = ''
 
-      // AIに最適な検索クエリを生成させる（Query Rewriting）
+      // AIに最適な検索クエリを生成させる（Advanced Query Rewriting - Multi-Query + HyDE）
       let optimizedQuery = text
+      let searchQueries: string[] = [text]
       if (isKnowledgeSearchEnabled && (fileSearchStores.length > 0 || companyDriveConnection?.isConnected)) {
+        console.log('[Chat] Generating optimized search queries...')
         const queryResult = await generateSearchQuery(
           BUILT_IN_GEMINI_API_KEY,
           text,
@@ -363,74 +360,92 @@ function ChatContent() {
         )
         if (!queryResult.error) {
           optimizedQuery = queryResult.query
+          searchQueries = queryResult.queries || [text]
+          console.log('[Chat] Generated queries:', searchQueries)
         }
       }
 
       // ナレッジ検索が有効で、会社がドライブに接続している場合はドライブも検索
       if (isKnowledgeSearchEnabled && companyDriveConnection?.isConnected && companyDriveConnection.accessToken) {
         try {
-          const driveSearchResponse = await fetch('/api/drive/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accessToken: companyDriveConnection.accessToken,
-              query: optimizedQuery, // AIが生成した最適なクエリを使用
-              folderId: companyDriveConnection.driveFolderId,
-            }),
-          })
+          // 複数クエリでドライブ検索（最初の2つのクエリを使用）
+          const driveQueries = searchQueries.slice(0, 2)
+          console.log('[Chat] Searching Drive with queries:', driveQueries)
 
-          if (driveSearchResponse.ok) {
-            const driveResults = await driveSearchResponse.json()
-            if (driveResults.results && driveResults.results.length > 0) {
-              // Drive結果をコンテキストとして構築
-              driveContext = '\n\n【Googleドライブから見つかった関連情報】\n'
-              driveResults.results.forEach((result: any, index: number) => {
-                driveContext += `\n--- ${result.name} ---\n${result.content}\n`
-                // citationsにも追加
-                citations.push({
-                  title: result.name,
-                  text: result.content.slice(0, 300),
-                  uri: result.webViewLink || '',
-                  source: 'drive',
-                })
+          const driveSearchPromises = driveQueries.map(query =>
+            fetch('/api/drive/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                accessToken: companyDriveConnection.accessToken,
+                query: query,
+                folderId: companyDriveConnection.driveFolderId,
+              }),
+            }).then(res => res.ok ? res.json() : { results: [] })
+              .catch(() => ({ results: [] }))
+          )
+
+          const driveResultsArray = await Promise.all(driveSearchPromises)
+          const allDriveResults: any[] = []
+          const seenDriveIds = new Set<string>()
+
+          driveResultsArray.forEach(driveResults => {
+            if (driveResults.results) {
+              driveResults.results.forEach((result: any) => {
+                if (!seenDriveIds.has(result.id)) {
+                  seenDriveIds.add(result.id)
+                  allDriveResults.push(result)
+                }
               })
             }
+          })
+
+          if (allDriveResults.length > 0) {
+            driveContext = '\n\n【Googleドライブから見つかった関連情報】\n'
+            allDriveResults.slice(0, 5).forEach((result: any) => {
+              driveContext += `\n--- ${result.name} ---\n${result.content}\n`
+              citations.push({
+                title: result.name,
+                text: result.content.slice(0, 300),
+                uri: result.webViewLink || '',
+                source: 'drive',
+              })
+            })
+            console.log('[Chat] Drive search found', allDriveResults.length, 'results')
           }
         } catch (driveError) {
           console.error('Drive search error:', driveError)
-          // ドライブ検索エラーは無視して続行
         }
       }
 
-      // ナレッジ検索でコンテキストを取得（File Searchがある場合）
+      // 高精度ナレッジ検索（Multi-Query + Reranking）
       let knowledgeContext = ''
       console.log('[Chat] Knowledge search check:', {
         isKnowledgeSearchEnabled,
         fileSearchStoresCount: fileSearchStores.length,
-        fileSearchStores,
         hasKnowledgeApiKey,
       })
       if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
         try {
-          console.log('[Chat] Running File Search with query:', optimizedQuery)
-          const searchResult = await queryWithFileSearch(
+          console.log('[Chat] Running Advanced Knowledge Search with', searchQueries.length, 'queries')
+
+          // 高精度検索を実行（複数クエリ + 重複除去 + 再ランキング）
+          const searchResult = await advancedKnowledgeSearch(
             BUILT_IN_GEMINI_API_KEY,
             fileSearchStores,
-            optimizedQuery, // AIが生成した最適なクエリを使用
-            '関連する情報を検索してください'
+            text, // 元の質問（再ランキング用）
+            searchQueries
           )
-          console.log('[Chat] File Search result:', searchResult)
+
+          console.log('[Chat] Advanced Search result:', searchResult.citations.length, 'citations')
 
           if (!searchResult.error && searchResult.citations.length > 0) {
-            // ナレッジからのコンテキストを構築
             knowledgeContext = '\n\n【社内ナレッジから見つかった関連情報】\n'
             searchResult.citations.forEach((citation: any) => {
-              // ドキュメント名マッピングからオリジナルのファイル名を取得
               let displayTitle = citation.title
 
               // URIからファイル名を抽出してマッピングを試みる
               if (citation.uri) {
-                // URIから files/xxx 部分を抽出
                 const fileNameMatch = citation.uri.match(/files\/([^/?]+)/)
                 if (fileNameMatch) {
                   const geminiFileName = `files/${fileNameMatch[1]}`
@@ -440,7 +455,6 @@ function ChatContent() {
                 }
               }
 
-              // タイトル自体がfiles/xxxの形式の場合もチェック
               if (displayTitle.startsWith('files/') && documentNameMap[displayTitle]) {
                 displayTitle = documentNameMap[displayTitle]
               }
@@ -455,7 +469,6 @@ function ChatContent() {
           }
         } catch (searchError) {
           console.error('Knowledge search error:', searchError)
-          // 検索エラーは無視して続行
         }
       } else {
         console.log('[Chat] Skipping knowledge search - conditions not met')
@@ -1018,7 +1031,8 @@ function ChatContent() {
             }}
             onKeyDown={(e) => {
               // Enterで送信、Shift+Enterで改行
-              if (e.key === 'Enter' && !e.shiftKey) {
+              // 日本語入力中（IME変換中）は送信しない
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 if (input.trim() && !isProcessing) {
                   handleSend()

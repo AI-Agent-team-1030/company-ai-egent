@@ -15,8 +15,7 @@ import {
   CloudIcon,
 } from '@heroicons/react/24/outline'
 import GoogleDrivePicker from '@/components/ui/GoogleDrivePicker'
-import { DriveFile, downloadGoogleFile } from '@/lib/google-drive'
-import { getGoogleDriveToken } from '@/lib/firebase-auth'
+import { DriveFile, downloadGoogleFile, setDriveAccessToken } from '@/lib/google-drive'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   saveFileSearchStore,
@@ -28,14 +27,14 @@ import {
   updateFolder,
   deleteFolder,
   deleteDocument,
+  getCompanyDriveConnection,
+  CompanyDriveConnection,
 } from '@/lib/firestore-chat'
 import {
   createFileSearchStore,
   uploadFile,
   importFileToStore,
-  listFiles,
   deleteFile as deleteGeminiFile,
-  FileInfo,
 } from '@/lib/gemini-file-search'
 import { BUILT_IN_GEMINI_API_KEY } from '@/lib/ai-providers'
 
@@ -73,7 +72,6 @@ interface ProcessingStatus {
 export default function KnowledgePage() {
   const { user, profile } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
-  const [geminiFiles, setGeminiFiles] = useState<FileInfo[]>([])
   const [folders, setFolders] = useState<Folder[]>([])
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
@@ -89,13 +87,26 @@ export default function KnowledgePage() {
 
   // Googleドライブ
   const [showDrivePicker, setShowDrivePicker] = useState(false)
-  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+  const [companyDriveConnection, setCompanyDriveConnection] = useState<CompanyDriveConnection | null>(null)
 
-  // Googleドライブ接続状態を確認
+  // 会社レベルのGoogleドライブ接続状態を確認
   useEffect(() => {
-    const token = getGoogleDriveToken()
-    setIsGoogleDriveConnected(!!token)
-  }, [])
+    const loadDriveConnection = async () => {
+      if (!profile?.companyId) return
+      try {
+        const connection = await getCompanyDriveConnection(profile.companyId)
+        setCompanyDriveConnection(connection)
+        // グローバルにアクセストークンを設定（GoogleDrivePickerで使用）
+        if (connection?.accessToken) {
+          setDriveAccessToken(connection.accessToken)
+        }
+        console.log('[Knowledge] Drive connection:', connection?.isConnected ? 'Connected' : 'Not connected')
+      } catch (error) {
+        console.error('[Knowledge] Failed to load drive connection:', error)
+      }
+    }
+    loadDriveConnection()
+  }, [profile?.companyId])
 
   useEffect(() => {
     if (profile?.companyId) {
@@ -111,19 +122,17 @@ export default function KnowledgePage() {
     console.log('[Knowledge] Fetching data for companyId:', profile.companyId)
     setLoading(true)
     try {
-      // FirestoreとGemini APIの両方からデータを取得
-      const apiKey = BUILT_IN_GEMINI_API_KEY
-      const [storesData, docsData, foldersData, geminiFilesResult] = await Promise.all([
+      // Firestoreから自社のデータのみを取得（セキュリティ: 会社間分離）
+      // 重要: Gemini APIからは取得しない（会社分離ができないため）
+      const [storesData, docsData, foldersData] = await Promise.all([
         getCompanyFileSearchStores(profile.companyId),
         getDocuments(profile.companyId),
         getFolders(profile.companyId),
-        apiKey ? listFiles(apiKey) : { files: [], error: null },
       ])
-      console.log('[Knowledge] Fetched:', {
+      console.log('[Knowledge] Fetched (company:', profile.companyId, '):', {
         stores: storesData.length,
         docs: docsData.length,
         folders: foldersData.length,
-        geminiFiles: geminiFilesResult.files.length
       })
 
       setStores(storesData.map((s: any) => ({
@@ -148,11 +157,6 @@ export default function KnowledgePage() {
         companyId: f.companyId,
         parentFolderId: f.parentFolderId,
       })))
-
-      // Geminiファイルを設定（ACTIVEのもののみ）
-      if (!geminiFilesResult.error) {
-        setGeminiFiles(geminiFilesResult.files.filter(f => f.state === 'ACTIVE'))
-      }
     } catch (err: any) {
       console.error('Error fetching data:', err)
       setError(err.message)
@@ -211,20 +215,12 @@ export default function KnowledgePage() {
     try {
       const apiKey = BUILT_IN_GEMINI_API_KEY
 
-      // Geminiのみのファイル（Firestoreに未登録）
-      if (docId.startsWith('gemini-') && geminiFileName && apiKey) {
-        const result = await deleteGeminiFile(apiKey, geminiFileName)
-        if (result.error) throw new Error(result.error)
-        setGeminiFiles(prev => prev.filter(f => f.name !== geminiFileName))
-      } else {
-        // Firestoreに登録されているファイル
-        // まずGeminiからも削除を試みる
-        if (geminiFileName && apiKey) {
-          await deleteGeminiFile(apiKey, geminiFileName).catch(() => {})
-        }
-        await deleteDocument(docId)
-        setDocuments(prev => prev.filter(d => d.id !== docId))
+      // Firestoreから削除（Geminiからも削除を試みる）
+      if (geminiFileName && apiKey) {
+        await deleteGeminiFile(apiKey, geminiFileName).catch(() => {})
       }
+      await deleteDocument(docId)
+      setDocuments(prev => prev.filter(d => d.id !== docId))
     } catch (err: any) {
       setError(err.message)
     }
@@ -469,31 +465,10 @@ export default function KnowledgePage() {
     return '📁'
   }
 
-  // FirestoreドキュメントとGeminiファイルをマージ
-  // Firestoreにあるものは優先、Geminiにのみあるものも表示
-  const mergedDocuments = (() => {
-    // Firestoreに登録されているGeminiファイル名のセット
-    const firestoreGeminiNames = new Set(documents.map(d => d.geminiFileName))
-
-    // Geminiにのみ存在するファイル（Firestoreに未登録）
-    const geminiOnlyDocs: Document[] = geminiFiles
-      .filter(f => !firestoreGeminiNames.has(f.name))
-      .map(f => ({
-        id: `gemini-${f.name}`,
-        fileName: f.displayName || f.name,
-        originalFileName: f.displayName || f.name,
-        geminiFileName: f.name,
-        storeName: '',
-        folderId: null,
-        createdAt: f.createTime ? new Date(f.createTime) : new Date(),
-      }))
-
-    return [...documents, ...geminiOnlyDocs]
-  })()
-
+  // Firestoreに登録された自社ドキュメントのみを表示（会社間分離を保証）
   const filteredDocuments = selectedFolderId
-    ? mergedDocuments.filter(d => d.folderId === selectedFolderId)
-    : mergedDocuments
+    ? documents.filter(d => d.folderId === selectedFolderId)
+    : documents
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -507,7 +482,7 @@ export default function KnowledgePage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {/* Googleドライブからインポート */}
-          {isGoogleDriveConnected && (
+          {companyDriveConnection?.isConnected && (
             <button
               onClick={() => setShowDrivePicker(true)}
               disabled={uploading}
@@ -535,7 +510,7 @@ export default function KnowledgePage() {
       </div>
 
       {/* Googleドライブ未接続の案内 */}
-      {!isGoogleDriveConnected && (
+      {!companyDriveConnection?.isConnected && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <CloudIcon className="w-6 h-6 text-blue-600 flex-shrink-0" />
@@ -625,7 +600,7 @@ export default function KnowledgePage() {
           >
             <FolderOpenIcon className="w-5 h-5" />
             <span className="font-medium">すべて</span>
-            <span className="text-xs opacity-75">({mergedDocuments.length})</span>
+            <span className="text-xs opacity-75">({documents.length})</span>
           </button>
 
           {folders.map((folder) => {
@@ -675,7 +650,7 @@ export default function KnowledgePage() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">ドキュメント数</p>
-          <p className="text-2xl font-bold text-gray-900">{mergedDocuments.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">フォルダ数</p>

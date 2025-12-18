@@ -16,28 +16,43 @@ service cloud.firestore {
       }
     }
 
-    // ドキュメント - ユーザーは自分のドキュメントのみ
+    // ドキュメント - 同じ会社のユーザーがアクセス可能
     match /documents/{documentId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
       allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == request.resource.data.companyId;
+      allow update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
     }
 
-    // フォルダ - ユーザーは自分のフォルダのみ
+    // フォルダ - 同じ会社のユーザーがアクセス可能
     match /folders/{folderId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
       allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == request.resource.data.companyId;
+      allow update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
     }
 
-    // ファイル検索ストア - ユーザーは自分のストアのみ
+    // ファイル検索ストア - 同じ会社のユーザーがアクセス可能
     match /fileSearchStores/{storeId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
       allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == request.resource.data.companyId;
+      allow update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == resource.data.companyId;
     }
 
     // プロフィール - ユーザーは自分のプロフィールのみアクセス可能
@@ -48,13 +63,11 @@ service cloud.firestore {
         && request.auth.uid == userId;
     }
 
-    // 企業情報 - 同じ会社のユーザーのみアクセス可能
+    // 企業情報 - 認証済みユーザーは読み取り可能（サインアップ時の企業検索のため）
     match /companies/{companyId} {
-      allow read: if request.auth != null
-        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
-        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
+      allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow write: if request.auth != null
+      allow update, delete: if request.auth != null
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
     }
