@@ -109,7 +109,7 @@ export function ChatInput({
           </button>
         ) : (
           <button
-            onClick={onSend}
+            onClick={() => onSend()}
             disabled={!input.trim() || isProcessing}
             className="px-3 md:px-6 py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 flex items-center gap-1 md:gap-2 font-semibold"
           >
