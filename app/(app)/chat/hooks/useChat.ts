@@ -692,6 +692,8 @@ export function useChat() {
     setSelectedModel,
     apiKeys,
     companyDriveConnection,
+    companyId: profile?.companyId,
+    userId: user?.uid,
 
     // Actions
     handleSend,

@@ -22,6 +22,7 @@ import {
   CompanyDriveConnection,
 } from '@/lib/firestore-chat'
 import { settingsLogger } from '@/lib/logger'
+import { TemplateManager } from './components/TemplateManager'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -685,6 +686,15 @@ export default function SettingsPage() {
             </AnimatePresence>
           </div>
         </motion.div>
+
+        {/* Prompt Templates Section */}
+        {profile?.companyId && user && (
+          <TemplateManager
+            companyId={profile.companyId}
+            userId={user.uid}
+            userName={profile.userName}
+          />
+        )}
       </div>
     </div>
   )

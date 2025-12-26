@@ -34,6 +34,8 @@ function ChatContent() {
     setSelectedModel,
     apiKeys,
     companyDriveConnection,
+    companyId,
+    userId,
 
     // Actions
     handleSend,
@@ -99,6 +101,8 @@ function ChatContent() {
         isKnowledgeSearchEnabled={isKnowledgeSearchEnabled}
         onKnowledgeSearchToggle={() => setIsKnowledgeSearchEnabled(!isKnowledgeSearchEnabled)}
         companyDriveConnection={companyDriveConnection}
+        companyId={companyId}
+        userId={userId}
       />
     </div>
   )

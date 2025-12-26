@@ -6,10 +6,12 @@
 
 'use client'
 
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { TEXTAREA } from '@/lib/constants'
 import type { CompanyDriveConnection } from '@/lib/firestore-chat'
+import { PromptTemplateSelector } from './PromptTemplateSelector'
+import type { PromptTemplate } from '../constants'
 
 interface ChatInputProps {
   input: string
@@ -21,6 +23,8 @@ interface ChatInputProps {
   isKnowledgeSearchEnabled: boolean
   onKnowledgeSearchToggle: () => void
   companyDriveConnection: CompanyDriveConnection | null
+  companyId?: string
+  userId?: string
 }
 
 export function ChatInput({
@@ -33,15 +37,32 @@ export function ChatInput({
   isKnowledgeSearchEnabled,
   onKnowledgeSearchToggle,
   companyDriveConnection,
+  companyId,
+  userId,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // 入力値が変わったときにテキストエリアの高さを自動調整
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, TEXTAREA.MAX_HEIGHT) + 'px'
+    }
+  }, [input])
+
+  const handleTemplateSelect = useCallback(
+    (template: PromptTemplate) => {
+      onInputChange(template.prompt)
+      // 高さ調整は useEffect で自動的に行われる
+    },
+    [onInputChange]
+  )
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onInputChange(e.target.value)
-      // 自動リサイズ
-      e.target.style.height = 'auto'
-      e.target.style.height = Math.min(e.target.scrollHeight, TEXTAREA.MAX_HEIGHT) + 'px'
+      // 高さ調整は useEffect で自動的に行われる
     },
     [onInputChange]
   )
@@ -97,7 +118,14 @@ export function ChatInput({
           </button>
         )}
       </div>
-      <div className="flex items-center justify-end mt-2 md:mt-3">
+      <div className="flex items-center justify-between mt-2 md:mt-3">
+        {/* テンプレートセレクター */}
+        <PromptTemplateSelector
+          onSelect={handleTemplateSelect}
+          disabled={isProcessing || isTyping}
+          companyId={companyId}
+          userId={userId}
+        />
         <div className="flex items-center gap-2">
           <span
             className={`text-xs font-medium ${
