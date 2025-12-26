@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { requireAuth } from '@/lib/api-auth'
+import { requireFirebaseAuth } from '@/lib/firebase-api-auth'
 import { checkStrictRateLimit } from '@/lib/rate-limit'
+import { apiLogger } from '@/lib/logger'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest) {
   if (!rateLimit.allowed) return rateLimit.error
 
   // 認証チェック
-  const auth = await requireAuth(req)
-  if (!auth.authorized) return auth.error
+  const auth = await requireFirebaseAuth(req)
+  if (!auth.authorized) return auth.error!
 
   try {
     const { goal } = await req.json()
@@ -266,7 +267,7 @@ export async function POST(req: NextRequest) {
           })}\n\n`)
         )
       } catch (error) {
-        console.error('Error in agent execution:', error)
+        apiLogger.error('Error in agent execution:', error)
         await writer.write(
           encoder.encode(`data: ${JSON.stringify({ type: 'error', error: 'エージェント実行中にエラーが発生しました' })}\n\n`)
         )
@@ -283,7 +284,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error in simple agent:', error)
+    apiLogger.error('Error in simple agent:', error)
     return NextResponse.json(
       { error: 'エージェント実行に失敗しました' },
       { status: 500 }

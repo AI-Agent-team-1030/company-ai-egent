@@ -24,7 +24,7 @@
 | AIチャット | 複数AIプロバイダー対応のチャット機能 | ✅ |
 | ナレッジ検索（RAG） | 社内文書からの自動検索・回答生成 | ✅ |
 | ドキュメント管理 | フォルダ階層型ドキュメント管理 | ✅ |
-| Google Drive連携 | Driveファイル自動同期・検索 | ✅ |
+| Google Drive検索 | Driveファイルの検索・参照 | ✅ |
 | 引用表示 | 回答時に参照元ドキュメントを表示 | ✅ |
 | 会話履歴管理 | 過去の会話の保存・検索・削除 | ✅ |
 
@@ -48,25 +48,22 @@
 |---|---|---|
 | `gemini-2.5-pro` | ファイル検索・高精度処理 | 最新の高性能モデル |
 | `gemini-2.5-flash` | 高速処理 | 低レイテンシ・コスト効率 |
-| `gemini-2.0-flash` | クエリ生成 | 軽量・高速 |
-| `gemini-exp-1206` | 実験的処理 | 最新実験モデル |
+| `gemini-exp-1206` | 実験的処理（Gemini 3） | 最新実験モデル |
 
 ### Claude（Anthropic）- ユーザーAPIキー必要
 
 | モデル名 | 用途 | 特徴 |
 |---|---|---|
-| `claude-sonnet-4-5-20250929` | 高精度タスク | 最新Sonnetモデル |
-| `claude-haiku-4-5-20251001` | 軽量タスク | 高速・低コスト |
-| `claude-3-7-sonnet-20250219` | ナレッジ判定 | バランス型 |
-| `claude-3-5-haiku-20241022` | 軽量判定 | 超高速 |
+| `claude-sonnet-4-5-20250929` | 高精度タスク | Claude 4.5 Sonnet |
+| `claude-haiku-4-5-20251001` | 軽量タスク | Claude 4.5 Haiku |
 
 ### GPT（OpenAI）- ユーザーAPIキー必要
 
 | モデル名 | 用途 | 特徴 |
 |---|---|---|
 | `gpt-5.1` | 汎用タスク | 最新GPTモデル |
-| `gpt-4o` | チャット・分析 | マルチモーダル対応 |
 | `gpt-5.1-mini` | 軽量処理 | コスト効率 |
+| `gpt-4o` | チャット・分析 | マルチモーダル対応 |
 
 ---
 
@@ -126,6 +123,7 @@
 | Framer Motion | 10.16.16 | アニメーション |
 | Zustand | 4.4.7 | 状態管理 |
 | React Markdown | 10.1.0 | Markdown表示 |
+| Recharts | 2.10.3 | グラフ・チャート |
 | Heroicons | 2.1.1 | アイコン |
 
 ### バックエンド
@@ -223,12 +221,12 @@
 
 ## 8. Google Drive連携仕様
 
-### 同期機能
+### 検索機能
 
 | 項目 | 仕様 |
 |---|---|
-| 同期方式 | 差分同期（syncedFileIds管理） |
-| 同期対象 | 指定フォルダ内全ファイル（再帰） |
+| 連携方式 | Google OAuth 2.0 |
+| 検索対象 | 接続したDrive内のファイル |
 | 自動変換 | Google形式→標準形式 |
 
 ### 対応MIMEタイプ
@@ -251,19 +249,6 @@ application/vnd.openxmlformats-officedocument.wordprocessingml.document
 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 ```
 
-### 同期状態管理
-
-```typescript
-interface DriveSyncStatus {
-  status: 'idle' | 'syncing' | 'completed' | 'error'
-  totalFiles: number
-  syncedFiles: number
-  syncedFileIds: string[]
-  lastSyncAt: Date
-  errorMessage?: string
-}
-```
-
 ---
 
 ## 9. API仕様
@@ -284,7 +269,6 @@ interface DriveSyncStatus {
 | **フォルダ** | `/api/folders` | GET/POST | フォルダ一覧・作成 |
 | | `/api/folders/[id]` | PUT/DELETE | フォルダ編集・削除 |
 | **Drive** | `/api/drive/search` | GET | Drive内検索 |
-| | `/api/drive/sync` | POST/GET | 同期開始・状態確認 |
 | **会社・設定** | `/api/company` | GET/POST | 会社情報管理 |
 | | `/api/company/drive` | GET/POST | Drive接続情報管理 |
 | | `/api/settings` | POST | ユーザー設定保存 |
@@ -292,7 +276,7 @@ interface DriveSyncStatus {
 | | `/api/simple-agent` | POST | エージェント実行 |
 | | `/api/generate-tasks` | POST | タスク自動生成 |
 
-### API総数: 約20エンドポイント
+### API総数: 約18エンドポイント
 
 ---
 
@@ -349,7 +333,7 @@ interface DriveSyncStatus {
 8. ドキュメントをprocessed=trueに更新
 ```
 
-### Google Drive同期フロー
+### Google Drive検索フロー
 
 ```
 1. ユーザーがDrive接続
@@ -358,21 +342,15 @@ interface DriveSyncStatus {
    ↓
 3. アクセストークン取得・保存
    ↓
-4. 同期開始リクエスト
+4. 検索クエリ入力
    ↓
-5. Drive内全ファイル取得（再帰的）
+5. Drive API経由でファイル検索
    ↓
 6. サポートされたファイルのみ抽出
    ↓
 7. ファイル形式変換（Google形式→標準形式）
    ↓
-8. Gemini APIへアップロード
-   ↓
-9. File SearchStoreへインポート
-   ↓
-10. 同期状態をFirestoreに保存
-   ↓
-11. 引用情報で自動参照可能に
+8. 検索結果を返却
 ```
 
 ---
@@ -406,7 +384,7 @@ interface DriveSyncStatus {
 |---|---|---|
 | AIモデル選択 | 3社対応（ユーザー選択可） | 1社固定が多い |
 | 標準AIモデル | Gemini無料提供 | 従量課金のみ |
-| Google連携 | Drive完全統合 | 手動アップロードのみ |
+| Google連携 | Drive検索統合 | 手動アップロードのみ |
 | OCR | tesseract.js内蔵 | オプション/別料金 |
 | 引用表示 | 自動生成 | なし/簡易的 |
 
@@ -458,6 +436,7 @@ interface DriveSyncStatus {
   "react": "18.2.0",
   "react-dom": "18.2.0",
   "react-markdown": "10.1.0",
+  "recharts": "2.10.3",
   "remark-gfm": "4.0.1",
   "tesseract.js": "6.0.1",
   "xlsx": "0.18.5",
@@ -498,7 +477,7 @@ interface DriveSyncStatus {
 │   │   ├── chat/page.tsx       # AIチャット
 │   │   ├── knowledge/page.tsx  # ナレッジ管理
 │   │   └── settings/page.tsx   # 設定
-│   └── api/                    # APIエンドポイント（約20個）
+│   └── api/                    # APIエンドポイント（約18個）
 │       ├── chat/
 │       ├── knowledge/
 │       ├── documents/
@@ -506,7 +485,7 @@ interface DriveSyncStatus {
 │       ├── drive/
 │       ├── company/
 │       └── [分析API]
-├── lib/                        # ユーティリティ（15ファイル）
+├── lib/                        # ユーティリティ（12ファイル）
 │   ├── firebase.ts
 │   ├── firebase-admin.ts
 │   ├── firebase-auth.ts
@@ -515,21 +494,16 @@ interface DriveSyncStatus {
 │   ├── ai-providers.ts
 │   ├── gemini-file-search.ts
 │   ├── google-drive.ts
-│   ├── drive-sync.ts
 │   ├── firestore-chat.ts
 │   ├── encryption.ts
 │   ├── api-auth.ts
-│   ├── rate-limit.ts
-│   └── api-client.ts
+│   └── rate-limit.ts
 ├── components/
 │   ├── ui/
 │   │   ├── Header.tsx
 │   │   ├── Sidebar.tsx
 │   │   └── GoogleDrivePicker.tsx
-│   ├── ProtectedRoute.tsx
-│   ├── TaskModal.tsx
-│   └── dashboard/
-│       └── StatsCard.tsx
+│   └── ProtectedRoute.tsx
 ├── package.json
 ├── tailwind.config.ts
 ├── tsconfig.json
@@ -542,6 +516,7 @@ interface DriveSyncStatus {
 
 | 日付 | バージョン | 内容 |
 |---|---|---|
+| 2025-12-25 | 1.1.0 | ドライブ同期機能削除、recharts追加、構造更新 |
 | 2025-12-12 | 1.0.0 | 初版作成 |
 
 ---

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { requireAuth } from '@/lib/api-auth'
+import { requireFirebaseAuth } from '@/lib/firebase-api-auth'
 import { checkStrictRateLimit } from '@/lib/rate-limit'
+import { apiLogger } from '@/lib/logger'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,8 +23,8 @@ export async function POST(req: NextRequest) {
   if (!rateLimit.allowed) return rateLimit.error
 
   // 認証チェック
-  const auth = await requireAuth(req)
-  if (!auth.authorized) return auth.error
+  const auth = await requireFirebaseAuth(req)
+  if (!auth.authorized) return auth.error!
 
   try {
     const { goal, industry, targetMarket } = await req.json()
@@ -306,7 +307,7 @@ export async function POST(req: NextRequest) {
           encoder.encode(`data: ${JSON.stringify({ type: 'complete', analysis: fullAnalysis })}\n\n`)
         )
       } catch (error) {
-        console.error('Error in market analysis:', error)
+        apiLogger.error('Error in market analysis:', error)
         await writer.write(
           encoder.encode(`data: ${JSON.stringify({ type: 'error', error: '分析中にエラーが発生しました' })}\n\n`)
         )
@@ -323,7 +324,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error in market analysis:', error)
+    apiLogger.error('Error in market analysis:', error)
     return NextResponse.json(
       { error: '分析に失敗しました' },
       { status: 500 }

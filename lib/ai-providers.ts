@@ -1,6 +1,8 @@
 // 統合AIプロバイダーライブラリ
 // Claude (Anthropic), GPT (OpenAI), Gemini (Google) をサポート
 
+import { aiLogger } from './logger'
+
 export type AIProvider = 'anthropic' | 'openai' | 'gemini'
 
 export interface AIProviderConfig {
@@ -130,7 +132,7 @@ async function callClaude(
       error: null,
     }
   } catch (error: any) {
-    console.error('Claude API error:', error)
+    aiLogger.error('Claude API error:', error)
     return {
       content: '',
       error: error.message || 'Claude APIでエラーが発生しました',
@@ -183,7 +185,7 @@ async function callGPT(
       error: null,
     }
   } catch (error: any) {
-    console.error('OpenAI API error:', error)
+    aiLogger.error('OpenAI API error:', error)
     return {
       content: '',
       error: error.message || 'OpenAI APIでエラーが発生しました',
@@ -239,7 +241,7 @@ async function callGemini(
       error: null,
     }
   } catch (error: any) {
-    console.error('Gemini API error:', error)
+    aiLogger.error('Gemini API error:', error)
     return {
       content: '',
       error: error.message || 'Gemini APIでエラーが発生しました',

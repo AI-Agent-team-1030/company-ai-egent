@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { logger } from './logger'
 
 // 暗号化キー（環境変数から取得、なければデフォルト値）
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-32-character-secret-key!!'
@@ -44,7 +45,7 @@ export function decrypt(text: string): string {
 
     return decrypted
   } catch (error) {
-    console.error('Decryption error:', error)
+    logger.error('Decryption error:', error)
     return text // 復号化失敗時は元の値を返す
   }
 }

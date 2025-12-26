@@ -15,6 +15,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { firestoreLogger } from './logger'
 
 // 会話一覧を取得
 export async function getConversations(userId: string) {
@@ -38,7 +39,7 @@ export async function getConversations(userId: string) {
   } catch (error: any) {
     // インデックスエラーは警告のみ（初回セットアップ時は発生しうる）
     if (error?.code === 'failed-precondition') {
-      console.warn('Firestore index required. This is normal for first setup.')
+      firestoreLogger.warn('Firestore index required. This is normal for first setup.')
     }
     return []
   }
@@ -55,7 +56,7 @@ export async function createConversation(userId: string, title: string = '新し
     })
     return { id: docRef.id, title, userId }
   } catch (error) {
-    console.error('Error creating conversation:', error)
+    firestoreLogger.error('Error creating conversation:', error)
     throw error
   }
 }
@@ -69,7 +70,7 @@ export async function getConversation(conversationId: string) {
     }
     return null
   } catch (error) {
-    console.error('Error getting conversation:', error)
+    firestoreLogger.error('Error getting conversation:', error)
     return null
   }
 }
@@ -82,7 +83,7 @@ export async function updateConversationTitle(conversationId: string, title: str
       updatedAt: serverTimestamp(),
     })
   } catch (error) {
-    console.error('Error updating conversation title:', error)
+    firestoreLogger.error('Error updating conversation title:', error)
     throw error
   }
 }
@@ -101,7 +102,7 @@ export async function deleteConversation(conversationId: string) {
     // 会話を削除
     await deleteDoc(doc(db, 'conversations', conversationId))
   } catch (error) {
-    console.error('Error deleting conversation:', error)
+    firestoreLogger.error('Error deleting conversation:', error)
     throw error
   }
 }
@@ -120,7 +121,7 @@ export async function getMessages(conversationId: string) {
       createdAt: doc.data().createdAt?.toDate?.() || new Date(),
     }))
   } catch (error) {
-    console.error('Error getting messages:', error)
+    firestoreLogger.error('Error getting messages:', error)
     return []
   }
 }
@@ -150,7 +151,7 @@ export async function addMessage(
 
     return { id: docRef.id, role, content, citations }
   } catch (error) {
-    console.error('Error adding message:', error)
+    firestoreLogger.error('Error adding message:', error)
     throw error
   }
 }
@@ -172,7 +173,7 @@ export async function saveFileSearchStore(
     })
     return { id: docRef.id, storeName, displayName }
   } catch (error) {
-    console.error('Error saving file search store:', error)
+    firestoreLogger.error('Error saving file search store:', error)
     throw error
   }
 }
@@ -190,7 +191,7 @@ export async function getCompanyFileSearchStores(companyId: string) {
       ...doc.data(),
     }))
   } catch (error) {
-    console.error('Error getting file search stores:', error)
+    firestoreLogger.error('Error getting file search stores:', error)
     return []
   }
 }
@@ -218,7 +219,7 @@ export async function saveUploadedDocument(
     })
     return { id: docRef.id }
   } catch (error) {
-    console.error('Error saving document:', error)
+    firestoreLogger.error('Error saving document:', error)
     throw error
   }
 }
@@ -241,7 +242,7 @@ export async function getDocuments(companyId: string) {
     return docs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } catch (error: any) {
     if (error?.code !== 'failed-precondition') {
-      console.warn('Error getting documents:', error?.message)
+      firestoreLogger.warn('Error getting documents:', error?.message)
     }
     return []
   }
@@ -265,7 +266,7 @@ export async function getCompanyAISettings(companyId: string): Promise<CompanyAI
     }
     return null
   } catch (error) {
-    console.error('Error getting company AI settings:', error)
+    firestoreLogger.error('Error getting company AI settings:', error)
     return null
   }
 }
@@ -282,7 +283,7 @@ export async function updateCompanyAISettings(
     })
     return true
   } catch (error) {
-    console.error('Error updating company AI settings:', error)
+    firestoreLogger.error('Error updating company AI settings:', error)
     return false
   }
 }
@@ -296,7 +297,7 @@ export async function getCompany(companyId: string) {
     }
     return null
   } catch (error) {
-    console.error('Error getting company:', error)
+    firestoreLogger.error('Error getting company:', error)
     return null
   }
 }
@@ -321,7 +322,7 @@ export async function createFolder(
     })
     return { id: docRef.id, name }
   } catch (error) {
-    console.error('Error creating folder:', error)
+    firestoreLogger.error('Error creating folder:', error)
     throw error
   }
 }
@@ -345,7 +346,7 @@ export async function getFolders(companyId: string) {
     return folders.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
   } catch (error: any) {
     if (error?.code !== 'failed-precondition') {
-      console.warn('Error getting folders:', error?.message)
+      firestoreLogger.warn('Error getting folders:', error?.message)
     }
     return []
   }
@@ -360,7 +361,7 @@ export async function updateFolder(folderId: string, name: string) {
     })
     return true
   } catch (error) {
-    console.error('Error updating folder:', error)
+    firestoreLogger.error('Error updating folder:', error)
     throw error
   }
 }
@@ -371,7 +372,7 @@ export async function deleteFolder(folderId: string) {
     await deleteDoc(doc(db, 'folders', folderId))
     return true
   } catch (error) {
-    console.error('Error deleting folder:', error)
+    firestoreLogger.error('Error deleting folder:', error)
     throw error
   }
 }
@@ -382,7 +383,7 @@ export async function deleteDocument(documentId: string) {
     await deleteDoc(doc(db, 'documents', documentId))
     return true
   } catch (error) {
-    console.error('Error deleting document:', error)
+    firestoreLogger.error('Error deleting document:', error)
     throw error
   }
 }
@@ -417,7 +418,7 @@ export async function getCompanyDriveConnection(companyId: string): Promise<Comp
     }
     return null
   } catch (error) {
-    console.error('Error getting company drive connection:', error)
+    firestoreLogger.error('Error getting company drive connection:', error)
     return null
   }
 }
@@ -440,7 +441,7 @@ export async function saveCompanyDriveConnection(
     await setDoc(doc(db, 'companies', companyId), updateData, { merge: true })
     return true
   } catch (error) {
-    console.error('Error saving company drive connection:', error)
+    firestoreLogger.error('Error saving company drive connection:', error)
     throw error
   }
 }
@@ -456,7 +457,7 @@ export async function disconnectCompanyDrive(companyId: string) {
     }, { merge: true })
     return true
   } catch (error) {
-    console.error('Error disconnecting company drive:', error)
+    firestoreLogger.error('Error disconnecting company drive:', error)
     throw error
   }
 }
@@ -475,7 +476,7 @@ export async function updateCompanyDriveToken(
     })
     return true
   } catch (error) {
-    console.error('Error updating company drive token:', error)
+    firestoreLogger.error('Error updating company drive token:', error)
     throw error
   }
 }
@@ -508,7 +509,7 @@ export async function getCompanyDriveSyncStatus(companyId: string): Promise<Driv
     }
     return null
   } catch (error) {
-    console.error('Error getting company drive sync status:', error)
+    firestoreLogger.error('Error getting company drive sync status:', error)
     return null
   }
 }
@@ -550,7 +551,7 @@ export async function updateCompanyDriveSyncStatus(
     await setDoc(doc(db, 'companies', companyId), updateData, { merge: true })
     return true
   } catch (error) {
-    console.error('Error updating company drive sync status:', error)
+    firestoreLogger.error('Error updating company drive sync status:', error)
     throw error
   }
 }
@@ -569,7 +570,7 @@ export async function initializeDriveSyncStatus(companyId: string) {
     }, { merge: true })
     return true
   } catch (error) {
-    console.error('Error initializing drive sync status:', error)
+    firestoreLogger.error('Error initializing drive sync status:', error)
     throw error
   }
 }
@@ -591,7 +592,7 @@ export async function resetDriveSyncStatus(companyId: string) {
     }, { merge: true })
     return true
   } catch (error) {
-    console.error('Error resetting drive sync status:', error)
+    firestoreLogger.error('Error resetting drive sync status:', error)
     throw error
   }
 }

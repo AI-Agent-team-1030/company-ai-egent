@@ -11,6 +11,7 @@ import {
   signUp as firebaseSignUp,
   signOut as firebaseSignOut,
 } from '@/lib/firebase-auth'
+import { authLogger } from '@/lib/logger'
 
 interface UserProfile {
   userName: string
@@ -18,12 +19,18 @@ interface UserProfile {
   companyName: string
 }
 
+// 認証結果の型
+interface AuthResult {
+  data: { user: User; session?: { user: User } } | null
+  error: { code?: string; message: string } | null
+}
+
 interface AuthContextType {
   user: User | null
   profile: UserProfile | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
-  signUp: (email: string, password: string) => Promise<{ data: any; error: any }>
+  signIn: (email: string, password: string) => Promise<AuthResult>
+  signUp: (email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<void>
 }
 
@@ -55,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('company_name', data.companyName)
           }
         } catch (error) {
-          console.error('Failed to fetch profile:', error)
+          authLogger.error('Failed to fetch profile:', error)
         }
       } else {
         setProfile(null)

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { db } from '@/lib/firebase'
 import { collection, query, where, getDocs, doc, setDoc, addDoc } from 'firebase/firestore'
+import { authLogger } from '@/lib/logger'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function SignupPage() {
   }
 
   // Firebaseエラーを日本語に変換
-  const translateFirebaseError = (error: any): string => {
+  const translateFirebaseError = (error: { code?: string; message?: string } | null): string => {
     const code = error?.code || ''
     const message = error?.message || ''
 
@@ -150,9 +151,12 @@ export default function SignupPage() {
 
       // 6. チャットページにリダイレクト
       router.push('/chat')
-    } catch (err: any) {
-      console.error('Signup error:', err)
-      setError(translateFirebaseError(err))
+    } catch (err: unknown) {
+      authLogger.error('Signup error:', err)
+      const errorInfo = err && typeof err === 'object' && 'code' in err
+        ? { code: String((err as { code: unknown }).code), message: String((err as { message?: unknown }).message || '') }
+        : null
+      setError(translateFirebaseError(errorInfo))
       setLoading(false)
     }
   }

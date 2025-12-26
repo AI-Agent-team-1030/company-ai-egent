@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { driveLogger } from '@/lib/logger'
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3'
 
@@ -83,7 +84,7 @@ async function getDocContent(accessToken: string, fileId: string, mimeType: stri
       }
     }
   } catch (error) {
-    console.error('Error getting doc content:', error)
+    driveLogger.error('Error getting doc content:', error)
   }
 
   // 最初の5000文字のみ返す（トークン制限のため）
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
       totalFound: searchResult.files?.length || 0,
     })
   } catch (error: any) {
-    console.error('Drive search error:', error)
+    driveLogger.error('Drive search error:', error)
     return NextResponse.json(
       { error: error.message || 'ドライブ検索に失敗しました' },
       { status: 500 }

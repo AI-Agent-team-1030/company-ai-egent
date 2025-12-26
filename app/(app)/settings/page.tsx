@@ -21,6 +21,7 @@ import {
   disconnectCompanyDrive,
   CompanyDriveConnection,
 } from '@/lib/firestore-chat'
+import { settingsLogger } from '@/lib/logger'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -80,7 +81,7 @@ export default function SettingsPage() {
 
       // リダイレクト待機中かチェック
       const isPending = isGoogleDriveRedirectPending()
-      console.log('[Drive] Checking redirect result, isPending:', isPending)
+      settingsLogger.debug('[Drive] Checking redirect result, isPending:', isPending)
 
       if (!isPending) {
         return
@@ -90,9 +91,9 @@ export default function SettingsPage() {
       setDriveError(null)
 
       try {
-        console.log('[Drive] Processing redirect result...')
+        settingsLogger.debug('[Drive] Processing redirect result...')
         const { accessToken, error } = await handleGoogleDriveRedirect()
-        console.log('[Drive] Redirect result:', { hasToken: !!accessToken, error })
+        settingsLogger.debug('[Drive] Redirect result:', { hasToken: !!accessToken, error })
 
         if (error) {
           setDriveError(error.message)
@@ -101,7 +102,7 @@ export default function SettingsPage() {
         }
 
         if (accessToken) {
-          console.log('[Drive] Saving connection to Firestore...')
+          settingsLogger.debug('[Drive] Saving connection to Firestore...')
           // リダイレクトから戻ってきた場合、会社レベルで保存
           await saveCompanyDriveConnection(profile.companyId, {
             connectedBy: user.uid,
@@ -117,13 +118,13 @@ export default function SettingsPage() {
           })
           setDriveSuccess('Googleドライブに接続しました！')
           setTimeout(() => setDriveSuccess(null), 5000)
-          console.log('[Drive] Connection saved successfully!')
+          settingsLogger.debug('[Drive] Connection saved successfully!')
         } else {
-          console.log('[Drive] No access token received')
+          settingsLogger.debug('[Drive] No access token received')
           setDriveError('アクセストークンの取得に失敗しました。もう一度お試しください。')
         }
       } catch (err: any) {
-        console.error('[Drive] Failed to process redirect result:', err)
+        settingsLogger.error('[Drive] Failed to process redirect result:', err)
         setDriveError(err.message || 'Google認証の処理中にエラーが発生しました')
       } finally {
         setIsProcessingRedirect(false)
@@ -144,7 +145,7 @@ export default function SettingsPage() {
         const connection = await getCompanyDriveConnection(profile.companyId)
         setCompanyDriveConnection(connection)
       } catch (error) {
-        console.error('Failed to load drive connection:', error)
+        settingsLogger.error('Failed to load drive connection:', error)
       } finally {
         setIsLoadingDriveStatus(false)
       }
@@ -172,7 +173,7 @@ export default function SettingsPage() {
         setApiKeys(keys)
       }
     } catch (error) {
-      console.error('Failed to fetch API keys:', error)
+      settingsLogger.error('Failed to fetch API keys:', error)
     }
   }
 
@@ -197,7 +198,7 @@ export default function SettingsPage() {
       setShowNameSuccess(true)
       setTimeout(() => setShowNameSuccess(false), 3000)
     } catch (error) {
-      console.error('Error saving user name:', error)
+      settingsLogger.error('Error saving user name:', error)
       alert('保存中にエラーが発生しました')
     } finally {
       setIsSavingName(false)
@@ -228,7 +229,7 @@ export default function SettingsPage() {
       setApiKey('')
       setSelectedProvider(null)
     } catch (error) {
-      console.error('Error saving API key:', error)
+      settingsLogger.error('Error saving API key:', error)
       alert('保存中にエラーが発生しました')
     } finally {
       setIsSavingKey(false)
@@ -254,20 +255,20 @@ export default function SettingsPage() {
 
       if (accessToken) {
         // 会社レベルで保存
-        console.log('[Drive] Saving connection to Firestore...')
+        settingsLogger.debug('[Drive] Saving connection to Firestore...')
         await saveCompanyDriveConnection(profile.companyId, {
           connectedBy: user.uid,
           connectedByEmail: user.email || undefined,
           accessToken,
         })
-        console.log('[Drive] Connection saved successfully')
+        settingsLogger.debug('[Drive] Connection saved successfully')
 
         // Firestoreへの保存が反映されるまで少し待つ
         await new Promise(resolve => setTimeout(resolve, 1000))
 
         // 保存を確認
         const savedConnection = await getCompanyDriveConnection(profile.companyId)
-        console.log('[Drive] Verified saved connection:', {
+        settingsLogger.debug('[Drive] Verified saved connection:', {
           isConnected: savedConnection?.isConnected,
           hasToken: !!savedConnection?.accessToken,
         })

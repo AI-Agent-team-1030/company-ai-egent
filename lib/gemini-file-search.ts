@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 import { FILE_SEARCH_MODEL, DEFAULT_MODEL } from './ai-providers'
+import { geminiLogger } from './logger'
 
 // Gemini クライアントの初期化
 export function createGeminiClient(apiKey?: string) {
@@ -22,7 +23,7 @@ export async function createFileSearchStore(
     })
     return { storeName: store.name || '', error: null }
   } catch (error: any) {
-    console.error('Store creation error:', error)
+    geminiLogger.error('Store creation error:', error)
     return { storeName: '', error: error.message }
   }
 }
@@ -50,7 +51,7 @@ export async function uploadFile(
 
     return { fileName: file.name || '', error: null }
   } catch (error: any) {
-    console.error('File upload error:', error)
+    geminiLogger.error('File upload error:', error)
     return { fileName: '', error: error.message }
   }
 }
@@ -74,7 +75,7 @@ export async function importFileToStore(
 
     return { success: true, error: null }
   } catch (error: any) {
-    console.error('Import error:', error)
+    geminiLogger.error('Import error:', error)
     return { success: false, error: error.message }
   }
 }
@@ -143,7 +144,7 @@ ${userQuestion}
       const jsonStr = jsonMatch[1] || responseText
       parsed = JSON.parse(jsonStr)
     } catch {
-      console.warn('[Query Rewriting] JSON parse failed, using fallback')
+      geminiLogger.warn('[Query Rewriting] JSON parse failed, using fallback')
     }
 
     // パース成功時は複数クエリを使用、失敗時はフォールバック
@@ -155,13 +156,13 @@ ${userQuestion}
       queries.push(parsed.hypotheticalAnswer)
     }
 
-    console.log('[Query Rewriting] Original:', userQuestion)
-    console.log('[Query Rewriting] Intent:', parsed?.intent || 'N/A')
-    console.log('[Query Rewriting] Generated queries:', queries)
+    geminiLogger.debug('[Query Rewriting] Original:', userQuestion)
+    geminiLogger.debug('[Query Rewriting] Intent:', parsed?.intent || 'N/A')
+    geminiLogger.debug('[Query Rewriting] Generated queries:', queries)
 
     return { query: mainQuery, queries, error: null }
   } catch (error: any) {
-    console.error('Query generation error:', error)
+    geminiLogger.error('Query generation error:', error)
     return { query: userQuestion, queries: [userQuestion], error: error.message }
   }
 }
@@ -209,12 +210,12 @@ ${citationTexts}
 
     // 再ランキングされた結果を返す
     const reranked = order.map(i => citations[i]).filter(Boolean)
-    console.log('[Reranking] Original order:', citations.map((_, i) => i + 1).join(','))
-    console.log('[Reranking] New order:', order.map(i => i + 1).join(','))
+    geminiLogger.debug('[Reranking] Original order:', citations.map((_, i) => i + 1).join(','))
+    geminiLogger.debug('[Reranking] New order:', order.map(i => i + 1).join(','))
 
     return reranked
   } catch (error) {
-    console.error('Reranking error:', error)
+    geminiLogger.error('Reranking error:', error)
     return citations
   }
 }
@@ -285,7 +286,7 @@ async function executeFileSearch(
     }
     return citations
   } catch (error) {
-    console.error('[File Search] Query error:', error)
+    geminiLogger.error('[File Search] Query error:', error)
     return []
   }
 }
@@ -299,7 +300,7 @@ export async function advancedKnowledgeSearch(
 ): Promise<{ citations: Citation[]; error: string | null }> {
   try {
     const ai = createGeminiClient(apiKey)
-    console.log('[Advanced Search] Starting with', queries.length, 'queries')
+    geminiLogger.debug('[Advanced Search] Starting with', queries.length, 'queries')
 
     // 複数クエリで並列検索
     const searchPromises = queries.slice(0, 3).map(query =>
@@ -309,11 +310,11 @@ export async function advancedKnowledgeSearch(
 
     // 結果をマージ
     let allCitations = results.flat()
-    console.log('[Advanced Search] Total citations before dedup:', allCitations.length)
+    geminiLogger.debug('[Advanced Search] Total citations before dedup:', allCitations.length)
 
     // 重複除去
     allCitations = deduplicateCitations(allCitations)
-    console.log('[Advanced Search] Citations after dedup:', allCitations.length)
+    geminiLogger.debug('[Advanced Search] Citations after dedup:', allCitations.length)
 
     // 再ランキング（結果が多い場合のみ）
     if (allCitations.length > 2) {
@@ -322,11 +323,11 @@ export async function advancedKnowledgeSearch(
 
     // 上位5件に絞る
     allCitations = allCitations.slice(0, 5)
-    console.log('[Advanced Search] Final citations:', allCitations.length)
+    geminiLogger.debug('[Advanced Search] Final citations:', allCitations.length)
 
     return { citations: allCitations, error: null }
   } catch (error: any) {
-    console.error('[Advanced Search] Error:', error)
+    geminiLogger.error('[Advanced Search] Error:', error)
     return { citations: [], error: error.message }
   }
 }
@@ -402,7 +403,7 @@ export async function queryWithFileSearch(
       error: null,
     }
   } catch (error: any) {
-    console.error('Query error:', error)
+    geminiLogger.error('Query error:', error)
     return { answer: '', citations: [], error: error.message }
   }
 }
@@ -437,7 +438,7 @@ export async function chat(
 
     return { answer: response.text || '', error: null }
   } catch (error: any) {
-    console.error('Chat error:', error)
+    geminiLogger.error('Chat error:', error)
     return { answer: '', error: error.message }
   }
 }
@@ -462,7 +463,7 @@ export async function listStores(
 
     return { stores, error: null }
   } catch (error: any) {
-    console.error('List stores error:', error)
+    geminiLogger.error('List stores error:', error)
     return { stores: [], error: error.message }
   }
 }
@@ -477,7 +478,7 @@ export async function deleteStore(
     await ai.fileSearchStores.delete({ name: storeName })
     return { success: true, error: null }
   } catch (error: any) {
-    console.error('Delete store error:', error)
+    geminiLogger.error('Delete store error:', error)
     return { success: false, error: error.message }
   }
 }
@@ -504,7 +505,7 @@ export async function listFiles(
 
     return { files, error: null }
   } catch (error: any) {
-    console.error('List files error:', error)
+    geminiLogger.error('List files error:', error)
     return { files: [], error: error.message }
   }
 }
@@ -519,7 +520,7 @@ export async function deleteFile(
     await ai.files.delete({ name: fileName })
     return { success: true, error: null }
   } catch (error: any) {
-    console.error('Delete file error:', error)
+    geminiLogger.error('Delete file error:', error)
     return { success: false, error: error.message }
   }
 }

@@ -6,11 +6,30 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  OAuthCredential,
+  AuthError,
 } from 'firebase/auth'
 import { auth } from './firebase'
+
+// Firebaseエラーかどうかを判定
+function isAuthError(error: unknown): error is AuthError {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof (error as AuthError).code === 'string'
+  )
+}
+
+// エラーメッセージを取得
+function getErrorFromUnknown(error: unknown): { code?: string; message: string } {
+  if (isAuthError(error)) {
+    return { code: error.code, message: getErrorMessage(error.code) }
+  }
+  if (error instanceof Error) {
+    return { message: error.message }
+  }
+  return { message: '認証エラーが発生しました' }
+}
 
 // Googleプロバイダー（Driveスコープ付き）
 const googleProvider = new GoogleAuthProvider()
@@ -19,38 +38,45 @@ googleProvider.setCustomParameters({
   prompt: 'consent'
 })
 
+// 認証結果の型定義
+interface AuthResult {
+  data: { user: User; session?: { user: User } } | null
+  error: { code?: string; message: string } | null
+}
+
 // サインアップ
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string): Promise<AuthResult> {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     return { data: { user: userCredential.user }, error: null }
-  } catch (error: any) {
-    return { data: null, error: { message: getErrorMessage(error.code) } }
+  } catch (error: unknown) {
+    return { data: null, error: getErrorFromUnknown(error) }
   }
 }
 
 // ログイン
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     return { data: { user: userCredential.user, session: { user: userCredential.user } }, error: null }
-  } catch (error: any) {
-    return { data: null, error: { code: error.code, message: getErrorMessage(error.code) } }
+  } catch (error: unknown) {
+    return { data: null, error: getErrorFromUnknown(error) }
   }
 }
 
 // ログアウト
-export async function signOut() {
+export async function signOut(): Promise<{ error: { message: string } | null }> {
   try {
     await firebaseSignOut(auth)
     return { error: null }
-  } catch (error: any) {
-    return { error: { message: error.message } }
+  } catch (error: unknown) {
+    const errInfo = getErrorFromUnknown(error)
+    return { error: { message: errInfo.message } }
   }
 }
 
 // 現在のユーザーを取得
-export async function getCurrentUser(): Promise<{ user: User | null; error: any }> {
+export async function getCurrentUser(): Promise<{ user: User | null; error: null }> {
   return new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       unsubscribe()
@@ -99,11 +125,14 @@ function getErrorMessage(errorCode: string): string {
   }
 }
 
-// Googleドライブ接続（ポップアップ方式）
-export async function linkGoogleDrive(): Promise<{
+// Google認証結果の型定義
+interface GoogleAuthResult {
   accessToken: string | null
-  error: any
-}> {
+  error: { message: string } | null
+}
+
+// Googleドライブ接続（ポップアップ方式）
+export async function linkGoogleDrive(): Promise<GoogleAuthResult> {
   const currentUser = auth.currentUser
   if (!currentUser) {
     return { accessToken: null, error: { message: 'ログインしていません' } }
@@ -120,17 +149,14 @@ export async function linkGoogleDrive(): Promise<{
     }
 
     return { accessToken, error: null }
-  } catch (error: any) {
-    console.error('[Drive Auth] Error:', error.code, error.message)
-    return { accessToken: null, error: { message: getGoogleErrorMessage(error.code) } }
+  } catch (error: unknown) {
+    const errorCode = isAuthError(error) ? error.code : ''
+    return { accessToken: null, error: { message: getGoogleErrorMessage(errorCode) } }
   }
 }
 
 // リダイレクト結果を処理（未使用だが互換性のため残す）
-export async function handleGoogleDriveRedirect(): Promise<{
-  accessToken: string | null
-  error: any
-}> {
+export async function handleGoogleDriveRedirect(): Promise<GoogleAuthResult> {
   return { accessToken: null, error: null }
 }
 

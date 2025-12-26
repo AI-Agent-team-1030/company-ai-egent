@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { requireAuth } from '@/lib/api-auth'
+import { requireFirebaseAuth } from '@/lib/firebase-api-auth'
 import { checkStrictRateLimit } from '@/lib/rate-limit'
+import { apiLogger } from '@/lib/logger'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -15,8 +16,8 @@ export async function POST(req: NextRequest) {
   if (!rateLimit.allowed) return rateLimit.error
 
   // 認証チェック
-  const auth = await requireAuth(req)
-  if (!auth.authorized) return auth.error
+  const auth = await requireFirebaseAuth(req)
+  if (!auth.authorized) return auth.error!
 
   try {
     const { goal, details } = await req.json()
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(taskList)
   } catch (error) {
-    console.error('Error generating tasks:', error)
+    apiLogger.error('Error generating tasks:', error)
     return NextResponse.json(
       { error: 'タスク生成に失敗しました' },
       { status: 500 }
