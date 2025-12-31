@@ -25,7 +25,7 @@ export interface Citation {
   title: string
   text: string
   uri?: string
-  source: 'knowledge' | 'drive'
+  source: 'knowledge' | 'drive' | 'onedrive'
 }
 
 export interface Message {

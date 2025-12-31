@@ -15,6 +15,7 @@ interface MessageListProps {
   messages: ChatMessage[]
   selectedModel: string
   isProcessing: boolean
+  processingStep: string
   isTyping: boolean
   getModelDisplayName: (modelId: string) => string
   onRegenerate: (messageId: string, content: string) => void
@@ -24,6 +25,7 @@ export function MessageList({
   messages,
   selectedModel,
   isProcessing,
+  processingStep,
   isTyping,
   getModelDisplayName,
   onRegenerate,
@@ -73,7 +75,7 @@ export function MessageList({
                     style={{ animationDelay: '300ms' }}
                   ></div>
                 </div>
-                <span className="text-sm">考え中...</span>
+                <span className="text-sm">{processingStep || '準備中...'}</span>
               </div>
             </div>
           </div>

@@ -10,9 +10,20 @@
 
 export const TYPING = {
   /** 1フレームあたりの文字数 */
-  CHARS_PER_FRAME: 2,
+  CHARS_PER_FRAME: 15,
   /** タイピング速度（ミリ秒） */
-  SPEED_MS: 30,
+  SPEED_MS: 10,
+} as const
+
+// ============================================
+// 処理ステップ表示（初心者向け文言）
+// ============================================
+
+export const PROCESSING_STEPS = {
+  ANALYZING: '質問を分析しています...',
+  SEARCHING_FILES: 'ファイルを探しています...',
+  SEARCHING_KNOWLEDGE: '関連情報を検索中...',
+  GENERATING: '回答を作成しています...',
 } as const
 
 // ============================================

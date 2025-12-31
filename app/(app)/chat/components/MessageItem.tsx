@@ -82,51 +82,61 @@ export function MessageItem({
         {message.citations &&
           message.citations.length > 0 &&
           message.showCitations === true && (
-            <div className="mt-3 space-y-2 animate-slideUp">
+            <div className="mt-3 animate-slideUp">
               <p className="text-xs text-gray-600 font-bold mb-2">参照した情報源</p>
-              {message.citations.map((citation, i) => (
-                <div
-                  key={i}
-                  className={`border rounded-lg p-3 ${
-                    citation.source === 'drive'
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-green-50 border-green-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg flex-shrink-0">
-                      {citation.source === 'drive' ? '📁' : '📄'}
+              <div className="flex flex-wrap gap-2">
+                {message.citations.map((citation, i) => {
+                  // 有効なURLかどうかをチェック（Firebase Storage, Google Drive, OneDrive）
+                  const hasValidUrl = citation.uri && (
+                    citation.uri.startsWith('https://firebasestorage.googleapis.com') ||
+                    citation.uri.startsWith('https://storage.googleapis.com') ||
+                    citation.uri.startsWith('https://docs.google.com') ||
+                    citation.uri.startsWith('https://drive.google.com') ||
+                    citation.uri.includes('sharepoint.com') ||
+                    citation.uri.includes('onedrive.live.com') ||
+                    citation.uri.includes('1drv.ms')
+                  )
+
+                  // ソースに応じたスタイルを取得
+                  const getSourceStyle = (source?: string) => {
+                    switch (source) {
+                      case 'drive':
+                        return 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                      case 'onedrive':
+                        return 'bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200'
+                      default:
+                        return 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                    }
+                  }
+
+                  if (hasValidUrl) {
+                    return (
+                      <a
+                        key={i}
+                        href={citation.uri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${getSourceStyle(citation.source)}`}
+                        title={`${citation.title}\n\nクリックしてファイルを開く`}
+                      >
+                        <span className="truncate max-w-[200px]">{citation.title}</span>
+                        <span className="text-[10px] opacity-60">↗</span>
+                      </a>
+                    )
+                  }
+
+                  // URLがない場合はクリック不可のタグとして表示
+                  return (
+                    <span
+                      key={i}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getSourceStyle(citation.source)}`}
+                      title={citation.text?.slice(0, 100)}
+                    >
+                      <span className="truncate max-w-[200px]">{citation.title}</span>
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            citation.source === 'drive'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-green-100 text-green-700'
-                          }`}
-                        >
-                          {citation.source === 'drive' ? 'Googleドライブ' : '社内ナレッジ'}
-                        </span>
-                        {citation.uri && (
-                          <a
-                            href={citation.uri}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline"
-                          >
-                            開く ↗
-                          </a>
-                        )}
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-sm mt-1">{citation.title}</h4>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {citation.text.slice(0, 200)}...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )
+                })}
+              </div>
             </div>
           )}
       </div>

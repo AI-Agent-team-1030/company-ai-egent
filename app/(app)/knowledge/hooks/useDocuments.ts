@@ -19,6 +19,8 @@ import {
   deleteDocument,
   getCompanyDriveConnection,
   CompanyDriveConnection,
+  uploadFileToStorage,
+  uploadBufferToStorage,
 } from '@/lib/firestore-chat'
 import {
   createFileSearchStore,
@@ -280,9 +282,28 @@ export function useDocuments() {
             20
           )
           const { blob, fileName } = await downloadGoogleFile(driveFile)
+          const mimeType = blob.type || driveFile.mimeType || 'application/octet-stream'
 
           let storeName = await getOrCreateStore()
           if (!storeName) throw new Error('ストアの作成に失敗しました')
+
+          // Firebase Storageにアップロード
+          updateProcessingStatus(
+            tempId,
+            'processing',
+            `${fileName} をストレージにアップロード中...`,
+            35
+          )
+          const fileBuffer = await blob.arrayBuffer()
+          const storageResult = await uploadBufferToStorage(
+            profile.companyId,
+            fileBuffer,
+            fileName,
+            mimeType
+          )
+          if (storageResult.error) {
+            knowledgeLogger.warn('Storage upload failed, continuing without URL:', storageResult.error)
+          }
 
           updateProcessingStatus(
             tempId,
@@ -290,12 +311,11 @@ export function useDocuments() {
             `${fileName} をGemini AIにアップロード中...`,
             50
           )
-          const fileBuffer = await blob.arrayBuffer()
           const uploadResult = await uploadFile(
             apiKey,
             new Uint8Array(fileBuffer),
             fileName,
-            blob.type || 'application/octet-stream'
+            mimeType
           )
           if (uploadResult.error) throw new Error(uploadResult.error)
 
@@ -311,7 +331,9 @@ export function useDocuments() {
             driveFile.name,
             uploadResult.fileName,
             storeName,
-            selectedFolderId
+            selectedFolderId,
+            storageResult.url || undefined,
+            mimeType
           )
 
           updateProcessingStatus(tempId, 'completed', `${driveFile.name} 完了！`, 100)
@@ -364,6 +386,18 @@ export function useDocuments() {
         updateProcessingStatus(tempId, 'uploading', `${file.name} をアップロード中...`, 20)
 
         try {
+          // Firebase Storageにアップロード
+          updateProcessingStatus(
+            tempId,
+            'processing',
+            `${file.name} をストレージにアップロード中...`,
+            30
+          )
+          const storageResult = await uploadFileToStorage(profile.companyId, file, file.name)
+          if (storageResult.error) {
+            knowledgeLogger.warn('Storage upload failed, continuing without URL:', storageResult.error)
+          }
+
           updateProcessingStatus(
             tempId,
             'processing',
@@ -396,7 +430,9 @@ export function useDocuments() {
             file.name,
             uploadResult.fileName,
             storeName,
-            selectedFolderId
+            selectedFolderId,
+            storageResult.url || undefined,
+            file.type || undefined
           )
 
           updateProcessingStatus(tempId, 'completed', `${file.name} 完了！`, 100)

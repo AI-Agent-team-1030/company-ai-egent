@@ -408,6 +408,75 @@ export async function queryWithFileSearch(
   }
 }
 
+// 会話履歴を要約してナレッジドキュメントを生成
+export async function summarizeConversation(
+  apiKey: string,
+  messages: ChatMessage[],
+  title?: string
+): Promise<{ content: string; title: string; error: string | null }> {
+  try {
+    const ai = createGeminiClient(apiKey)
+
+    // 会話履歴を文字列に変換
+    const conversationText = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => `${m.role === 'user' ? 'ユーザー' : 'AI'}: ${m.content}`)
+      .join('\n\n')
+
+    const prompt = `以下の会話を社内ナレッジとして保存するために、構造化されたドキュメントにまとめてください。
+
+【会話内容】
+${conversationText}
+
+以下の形式でMarkdownドキュメントを作成してください：
+
+# [タイトル - 会話の主要トピックを表す簡潔なタイトル]
+
+## 概要
+[この会話で議論された内容の要約（2-3文）]
+
+## 主要なポイント
+- [重要なポイント1]
+- [重要なポイント2]
+- [重要なポイント3]
+
+## 詳細
+[会話から得られた詳細な情報や結論をまとめる]
+
+## 関連キーワード
+[関連する検索キーワードをカンマ区切りで列挙]
+
+---
+*この文書は会話履歴から自動生成されました。*
+
+ルール：
+- 日本語で出力
+- 実用的で検索しやすい形式にする
+- 重要な情報を漏らさない
+- 冗長な表現は避ける`
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.3,
+        maxOutputTokens: 2000,
+      },
+    })
+
+    const content = response.text?.trim() || ''
+
+    // タイトルを抽出（最初の # から次の改行まで）
+    const titleMatch = content.match(/^#\s+(.+)$/m)
+    const extractedTitle = titleMatch ? titleMatch[1] : (title || '会話ナレッジ')
+
+    return { content, title: extractedTitle, error: null }
+  } catch (error: any) {
+    geminiLogger.error('Summarize conversation error:', error)
+    return { content: '', title: '', error: error.message }
+  }
+}
+
 // 通常のチャット（File Search なし）
 export async function chat(
   apiKey: string,
@@ -540,7 +609,8 @@ export interface Citation {
   title: string
   uri: string
   text: string
-  source?: 'drive' | 'knowledge' // ソースの種類
+  source?: 'drive' | 'knowledge' | 'onedrive' | 'web' // ソースの種類
+  mimeType?: string // ファイルタイプ
 }
 
 export interface ChatMessage {

@@ -19,12 +19,20 @@ import {
   getCompanyDriveSyncStatus,
   getDocuments,
   CompanyDriveConnection,
+  saveFileSearchStore,
+  saveUploadedDocument,
+  getCompanyOnedriveConnection,
+  CompanyOnedriveConnection,
 } from '@/lib/firestore-chat'
 import {
   queryWithFileSearch,
   Citation,
   generateSearchQuery,
   advancedKnowledgeSearch,
+  summarizeConversation,
+  uploadFile,
+  importFileToStore,
+  createFileSearchStore,
 } from '@/lib/gemini-file-search'
 import {
   ALL_MODELS,
@@ -34,9 +42,9 @@ import {
   chat as aiChat,
   AIProvider,
 } from '@/lib/ai-providers'
-import { TYPING, GEMINI_LIMITS } from '@/lib/constants'
+import { TYPING, GEMINI_LIMITS, PROCESSING_STEPS } from '@/lib/constants'
 import { chatLogger } from '@/lib/logger'
-import type { ChatMessage, ApiKeys, FileSearchStore, DocumentData, LoadedMessage, DriveSearchResult } from '../types'
+import type { ChatMessage, ApiKeys, FileSearchStore, DocumentData, DocumentInfo, LoadedMessage, DriveSearchResult } from '../types'
 
 const createWelcomeMessage = (): ChatMessage => ({
   id: '1',
@@ -66,7 +74,12 @@ export function useChat() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ anthropic: '', openai: '' })
   const [companyDriveConnection, setCompanyDriveConnection] =
     useState<CompanyDriveConnection | null>(null)
-  const [documentNameMap, setDocumentNameMap] = useState<Record<string, string>>({})
+  const [companyOnedriveConnection, setCompanyOnedriveConnection] =
+    useState<CompanyOnedriveConnection | null>(null)
+  const [documentInfoMap, setDocumentInfoMap] = useState<Record<string, DocumentInfo>>({})
+  const [processingStep, setProcessingStep] = useState<string>('')
+  const [isSavingToKnowledge, setIsSavingToKnowledge] = useState(false)
+  const [knowledgeSaveSuccess, setKnowledgeSaveSuccess] = useState(false)
 
   // Refs
   const timeoutsRef = useRef<NodeJS.Timeout[]>([])
@@ -119,14 +132,21 @@ export function useChat() {
       const driveConnection = await getCompanyDriveConnection(profile.companyId)
       setCompanyDriveConnection(driveConnection)
 
+      const onedriveConnection = await getCompanyOnedriveConnection(profile.companyId)
+      setCompanyOnedriveConnection(onedriveConnection)
+
       const documents = await getDocuments(profile.companyId)
-      const nameMap: Record<string, string> = {};
+      const infoMap: Record<string, DocumentInfo> = {};
       (documents as DocumentData[]).forEach((doc) => {
         if (doc.geminiFileName && doc.originalFileName) {
-          nameMap[doc.geminiFileName] = doc.originalFileName
+          infoMap[doc.geminiFileName] = {
+            originalFileName: doc.originalFileName,
+            fileUrl: doc.fileUrl,
+            mimeType: doc.mimeType,
+          }
         }
       })
-      setDocumentNameMap(nameMap)
+      setDocumentInfoMap(infoMap)
     }
     loadStoresAndDrive()
   }, [profile?.companyId])
@@ -249,10 +269,16 @@ export function useChat() {
     )
   }, [])
 
-  const handleSend = async (messageText?: string) => {
+  const handleSend = async (messageText?: string, agentSystemPrompt?: string, agentTools?: string[]) => {
     const text = messageText || input
     if (!text.trim() || isProcessing || isSendingRef.current) return
     isSendingRef.current = true
+
+    // エージェントのツール設定（指定がなければナレッジ検索のみ）
+    const enabledTools = agentTools || ['knowledge_search']
+    const shouldSearchKnowledge = enabledTools.includes('knowledge_search')
+    const shouldSearchDrive = enabledTools.includes('drive_search')
+    const shouldSearchWeb = enabledTools.includes('web_search')
 
     const modelInfo = getSelectedModelInfo()
     if (!modelInfo) {
@@ -279,6 +305,7 @@ export function useChat() {
     setMessages((prev) => [...prev, tempUserMessage])
     setInput('')
     setIsProcessing(true)
+    setProcessingStep(PROCESSING_STEPS.ANALYZING)
     setError(null)
 
     let currentConversationId = conversationId
@@ -309,13 +336,15 @@ export function useChat() {
       let citations: Citation[] = []
       let usedModel = selectedModel
       let driveContext = ''
+      let onedriveContext = ''
 
       // AIに最適な検索クエリを生成させる
       let searchQueries: string[] = [text]
-      if (
-        isKnowledgeSearchEnabled &&
-        (fileSearchStores.length > 0 || companyDriveConnection?.isConnected)
-      ) {
+      const hasDriveConnection = companyDriveConnection?.isConnected || companyOnedriveConnection?.isConnected
+      const needsSearch = (shouldSearchKnowledge && fileSearchStores.length > 0) ||
+                          (shouldSearchDrive && hasDriveConnection) ||
+                          shouldSearchWeb
+      if (needsSearch) {
         const queryResult = await generateSearchQuery(
           BUILT_IN_GEMINI_API_KEY,
           text,
@@ -326,12 +355,13 @@ export function useChat() {
         }
       }
 
-      // ドライブ検索
+      // ドライブ検索（エージェントのツールにdrive_searchがある場合のみ）
       if (
-        isKnowledgeSearchEnabled &&
+        shouldSearchDrive &&
         companyDriveConnection?.isConnected &&
         companyDriveConnection.accessToken
       ) {
+        setProcessingStep(PROCESSING_STEPS.SEARCHING_FILES)
         try {
           const driveQueries = searchQueries.slice(0, 2)
           const driveSearchPromises = driveQueries.map((query) =>
@@ -387,9 +417,72 @@ export function useChat() {
         }
       }
 
-      // ナレッジ検索
+      // OneDrive検索（エージェントのツールにdrive_searchがある場合のみ）
+      if (
+        shouldSearchDrive &&
+        companyOnedriveConnection?.isConnected &&
+        companyOnedriveConnection.accessToken
+      ) {
+        setProcessingStep(PROCESSING_STEPS.SEARCHING_FILES)
+        try {
+          const onedriveQueries = searchQueries.slice(0, 2)
+          const onedriveSearchPromises = onedriveQueries.map((query) =>
+            fetch('/api/onedrive/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                accessToken: companyOnedriveConnection.accessToken,
+                query: query,
+              }),
+            })
+              .then((res) => (res.ok ? res.json() : { results: [] }))
+              .catch(() => ({ results: [] }))
+          )
+
+          interface OnedriveResult {
+            id: string
+            name: string
+            content: string
+            webViewLink?: string
+            mimeType?: string
+          }
+
+          const onedriveResultsArray = await Promise.all(onedriveSearchPromises)
+          const allOnedriveResults: OnedriveResult[] = []
+          const seenOnedriveIds = new Set<string>()
+
+          onedriveResultsArray.forEach((onedriveResults) => {
+            if (onedriveResults.results) {
+              (onedriveResults.results as OnedriveResult[]).forEach((result) => {
+                if (!seenOnedriveIds.has(result.id)) {
+                  seenOnedriveIds.add(result.id)
+                  allOnedriveResults.push(result)
+                }
+              })
+            }
+          })
+
+          if (allOnedriveResults.length > 0) {
+            onedriveContext = '\n\n【OneDriveから見つかった関連情報】\n'
+            allOnedriveResults.slice(0, 5).forEach((result) => {
+              onedriveContext += `\n--- ${result.name} ---\n${result.content}\n`
+              citations.push({
+                title: result.name,
+                text: result.content.slice(0, 300),
+                uri: result.webViewLink || '',
+                source: 'onedrive',
+              })
+            })
+          }
+        } catch (onedriveError) {
+          chatLogger.error('OneDrive search error:', onedriveError)
+        }
+      }
+
+      // ナレッジ検索（エージェントのツールにknowledge_searchがある場合のみ）
       let knowledgeContext = ''
-      if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
+      if (shouldSearchKnowledge && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
+        setProcessingStep(PROCESSING_STEPS.SEARCHING_KNOWLEDGE)
         try {
           const searchResult = await advancedKnowledgeSearch(
             BUILT_IN_GEMINI_API_KEY,
@@ -402,26 +495,38 @@ export function useChat() {
             knowledgeContext = '\n\n【社内ナレッジから見つかった関連情報】\n'
             searchResult.citations.forEach((citation) => {
               let displayTitle = citation.title
+              let fileUrl: string | undefined
+              let mimeType: string | undefined
 
               if (citation.uri) {
                 const fileNameMatch = citation.uri.match(/files\/([^/?]+)/)
                 if (fileNameMatch) {
                   const geminiFileName = `files/${fileNameMatch[1]}`
-                  if (documentNameMap[geminiFileName]) {
-                    displayTitle = documentNameMap[geminiFileName]
+                  const docInfo = documentInfoMap[geminiFileName]
+                  if (docInfo) {
+                    displayTitle = docInfo.originalFileName
+                    fileUrl = docInfo.fileUrl
+                    mimeType = docInfo.mimeType
                   }
                 }
               }
 
-              if (displayTitle.startsWith('files/') && documentNameMap[displayTitle]) {
-                displayTitle = documentNameMap[displayTitle]
+              if (displayTitle.startsWith('files/')) {
+                const docInfo = documentInfoMap[displayTitle]
+                if (docInfo) {
+                  displayTitle = docInfo.originalFileName
+                  fileUrl = docInfo.fileUrl
+                  mimeType = docInfo.mimeType
+                }
               }
 
               knowledgeContext += `\n--- ${displayTitle} ---\n${citation.text}\n`
               citations.push({
                 ...citation,
                 title: displayTitle,
+                uri: fileUrl || citation.uri,
                 source: 'knowledge',
+                ...(mimeType ? { mimeType } : {}),
               })
             })
           }
@@ -430,12 +535,87 @@ export function useChat() {
         }
       }
 
+      // Web検索（エージェントのツールにweb_searchがある場合のみ）
+      let webContext = ''
+      if (shouldSearchWeb) {
+        setProcessingStep('Webを検索中...')
+        try {
+          const webQueries = searchQueries.slice(0, 2)
+          const webSearchPromises = webQueries.map((query) =>
+            fetch('/api/web/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query, maxResults: 3 }),
+            })
+              .then((res) => (res.ok ? res.json() : { results: [] }))
+              .catch(() => ({ results: [] }))
+          )
+
+          interface WebResult {
+            title: string
+            url: string
+            snippet: string
+          }
+
+          const webResultsArray = await Promise.all(webSearchPromises)
+          const allWebResults: WebResult[] = []
+          const seenUrls = new Set<string>()
+          let webSummary = ''
+
+          webResultsArray.forEach((webResults) => {
+            if (webResults.summary && !webSummary) {
+              webSummary = webResults.summary
+            }
+            if (webResults.results) {
+              (webResults.results as WebResult[]).forEach((result) => {
+                if (!seenUrls.has(result.url)) {
+                  seenUrls.add(result.url)
+                  allWebResults.push(result)
+                }
+              })
+            }
+          })
+
+          if (allWebResults.length > 0 || webSummary) {
+            webContext = '\n\n【Web検索結果】\n'
+            if (webSummary) {
+              webContext += `${webSummary}\n\n`
+            }
+            allWebResults.slice(0, 5).forEach((result) => {
+              if (result.snippet) {
+                webContext += `\n--- ${result.title} ---\n${result.snippet}\n`
+              }
+              citations.push({
+                title: result.title,
+                text: result.snippet || '',
+                uri: result.url,
+                source: 'web',
+              })
+            })
+          }
+        } catch (webError) {
+          chatLogger.error('Web search error:', webError)
+        }
+      }
+
       // AIレスポンス生成
+      setProcessingStep(PROCESSING_STEPS.GENERATING)
       const apiKey = getApiKeyForProvider(modelInfo.provider)
-      const combinedContext = driveContext + knowledgeContext
-      const systemPrompt = combinedContext
-        ? `日本語で回答してください。質問に対して丁寧に回答してください。以下の情報を参考にしてください：${combinedContext}`
-        : '日本語で回答してください。質問に対して丁寧に回答してください。'
+      const combinedContext = driveContext + onedriveContext + knowledgeContext + webContext
+
+      // エージェントのsystemPromptがあればそれを使用、なければデフォルト
+      let systemPrompt: string
+      if (agentSystemPrompt) {
+        // エージェントのシステムプロンプト + 検索結果のコンテキスト
+        systemPrompt = combinedContext
+          ? `${agentSystemPrompt}\n\n【参考情報】\n以下の情報を参考にしてください：${combinedContext}`
+          : agentSystemPrompt
+      } else {
+        // デフォルトのシステムプロンプト
+        systemPrompt = combinedContext
+          ? `日本語で回答してください。質問に対して丁寧に回答してください。以下の情報を参考にしてください：${combinedContext}`
+          : '日本語で回答してください。質問に対して丁寧に回答してください。'
+      }
 
       const result = await aiChat(modelInfo.provider, apiKey, history, selectedModel, systemPrompt)
 
@@ -496,6 +676,7 @@ export function useChat() {
           )
           setIsTyping(false)
           setIsProcessing(false)
+          setProcessingStep('')
           setShouldStopTyping(false)
           isSendingRef.current = false
           return
@@ -516,6 +697,7 @@ export function useChat() {
           )
           setIsTyping(false)
           setIsProcessing(false)
+          setProcessingStep('')
           isSendingRef.current = false
         }
       }
@@ -526,6 +708,7 @@ export function useChat() {
       const message = err instanceof Error ? err.message : 'メッセージの送信に失敗しました'
       setError(message)
       setIsProcessing(false)
+      setProcessingStep('')
       isSendingRef.current = false
     }
   }
@@ -675,6 +858,113 @@ export function useChat() {
     }
   }
 
+  // 会話をナレッジとして保存
+  const saveConversationAsKnowledge = async () => {
+    if (!user || !profile?.companyId || messages.length < 2) {
+      setError('保存する会話がありません')
+      return false
+    }
+
+    setIsSavingToKnowledge(true)
+    setKnowledgeSaveSuccess(false)
+    setError(null)
+
+    try {
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+      if (!apiKey) {
+        throw new Error('Gemini APIキーが設定されていません')
+      }
+
+      // 1. 会話を要約してドキュメント化
+      chatLogger.debug('Summarizing conversation...')
+      const summaryResult = await summarizeConversation(
+        apiKey,
+        messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+      )
+      if (summaryResult.error) {
+        throw new Error(summaryResult.error)
+      }
+
+      const { content, title } = summaryResult
+      const fileName = `会話ナレッジ_${title.slice(0, 30).replace(/[/\\?%*:|"<>]/g, '_')}_${Date.now()}.md`
+
+      // 2. File Search Store を取得または作成
+      let storeName = fileSearchStores[0]
+      if (!storeName) {
+        chatLogger.debug('Creating new File Search Store...')
+        const storeResult = await createFileSearchStore(
+          apiKey,
+          `${profile.companyName || 'Company'} Knowledge`
+        )
+        if (storeResult.error) {
+          throw new Error(storeResult.error)
+        }
+        storeName = storeResult.storeName
+
+        await saveFileSearchStore(
+          user.uid,
+          profile.companyId,
+          storeName,
+          `${profile.companyName || 'Company'} Knowledge`
+        )
+        setFileSearchStores(prev => [...prev, storeName])
+      }
+
+      // 3. Markdownをテキストファイルとしてアップロード
+      chatLogger.debug('Uploading to Gemini Files API...')
+      const textEncoder = new TextEncoder()
+      const fileBuffer = textEncoder.encode(content)
+
+      const uploadResult = await uploadFile(
+        apiKey,
+        fileBuffer,
+        fileName,
+        'text/markdown'
+      )
+      if (uploadResult.error) {
+        throw new Error(uploadResult.error)
+      }
+
+      // 4. File Search Store にインポート
+      chatLogger.debug('Importing to File Search Store...')
+      const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+      if (importResult.error) {
+        throw new Error(importResult.error)
+      }
+
+      // 5. Firestore に保存（Firebase Storageはスキップ - CORSの問題を回避）
+      chatLogger.debug('Saving to Firestore...')
+      await saveUploadedDocument(
+        user.uid,
+        profile.companyId,
+        fileName,
+        title,
+        uploadResult.fileName,
+        storeName,
+        null,
+        undefined, // fileUrl - 会話ナレッジはGemini Files APIから検索するのでStorage不要
+        'text/markdown'
+      )
+
+      chatLogger.info('Conversation saved as knowledge:', title)
+      setKnowledgeSaveSuccess(true)
+
+      // 3秒後に成功メッセージを消す
+      setTimeout(() => {
+        setKnowledgeSaveSuccess(false)
+      }, 3000)
+
+      return true
+    } catch (err: unknown) {
+      chatLogger.error('Error saving conversation as knowledge:', err)
+      const message = err instanceof Error ? err.message : 'ナレッジの保存に失敗しました'
+      setError(message)
+      return false
+    } finally {
+      setIsSavingToKnowledge(false)
+    }
+  }
+
   return {
     // State
     conversationId,
@@ -682,6 +972,7 @@ export function useChat() {
     input,
     setInput,
     isProcessing,
+    processingStep,
     error,
     isKnowledgeSearchEnabled,
     setIsKnowledgeSearchEnabled,
@@ -692,8 +983,11 @@ export function useChat() {
     setSelectedModel,
     apiKeys,
     companyDriveConnection,
+    companyOnedriveConnection,
     companyId: profile?.companyId,
     userId: user?.uid,
+    isSavingToKnowledge,
+    knowledgeSaveSuccess,
 
     // Actions
     handleSend,
@@ -701,6 +995,7 @@ export function useChat() {
     switchAlternative,
     regenerateResponse,
     resetChat,
+    saveConversationAsKnowledge,
 
     // Utilities
     getSelectedModelInfo,

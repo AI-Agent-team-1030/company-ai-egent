@@ -62,8 +62,14 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.uid == userId;
 
-      // 個人プロンプトテンプレート - ユーザーは自分のテンプレートのみアクセス可能
+      // 個人プロンプトテンプレート - ユーザーは自分のテンプレートのみアクセス可能（レガシー）
       match /promptTemplates/{templateId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+      }
+
+      // 個人エージェント - ユーザーは自分のエージェントのみアクセス可能
+      match /agents/{agentId} {
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
       }
@@ -77,8 +83,21 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
         && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
 
-      // 企業共有プロンプトテンプレート - 同じ会社のユーザーがアクセス可能
+      // 企業共有プロンプトテンプレート - 同じ会社のユーザーがアクセス可能（レガシー）
       match /promptTemplates/{templateId} {
+        allow read: if request.auth != null
+          && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+          && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
+        allow create: if request.auth != null
+          && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+          && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
+        allow update, delete: if request.auth != null
+          && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+          && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;
+      }
+
+      // 企業共有エージェント - 同じ会社のユーザーがアクセス可能
+      match /agents/{agentId} {
         allow read: if request.auth != null
           && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
           && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.companyId == companyId;

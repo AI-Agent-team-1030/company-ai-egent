@@ -14,8 +14,46 @@ import {
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { db, storage } from './firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { firestoreLogger } from './logger'
+
+// Firebase Storageにファイルをアップロード
+export async function uploadFileToStorage(
+  companyId: string,
+  file: File | Blob,
+  fileName: string
+): Promise<{ url: string; error: string | null }> {
+  try {
+    const storageRef = ref(storage, `knowledge/${companyId}/${Date.now()}_${fileName}`)
+    await uploadBytes(storageRef, file)
+    const downloadUrl = await getDownloadURL(storageRef)
+    return { url: downloadUrl, error: null }
+  } catch (error: any) {
+    firestoreLogger.error('Error uploading file to storage:', error)
+    return { url: '', error: error.message }
+  }
+}
+
+// Firebase Storageにバッファをアップロード
+export async function uploadBufferToStorage(
+  companyId: string,
+  buffer: ArrayBuffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ url: string; error: string | null }> {
+  try {
+    const uint8Array = new Uint8Array(buffer)
+    const blob = new Blob([uint8Array], { type: mimeType })
+    const storageRef = ref(storage, `knowledge/${companyId}/${Date.now()}_${fileName}`)
+    await uploadBytes(storageRef, blob)
+    const downloadUrl = await getDownloadURL(storageRef)
+    return { url: downloadUrl, error: null }
+  } catch (error: any) {
+    firestoreLogger.error('Error uploading buffer to storage:', error)
+    return { url: '', error: error.message }
+  }
+}
 
 // 会話一覧を取得
 export async function getConversations(userId: string) {
@@ -204,7 +242,9 @@ export async function saveUploadedDocument(
   originalFileName: string,
   geminiFileName: string,
   storeName: string,
-  folderId?: string | null
+  folderId?: string | null,
+  fileUrl?: string,
+  mimeType?: string
 ) {
   try {
     const docRef = await addDoc(collection(db, 'documents'), {
@@ -215,6 +255,8 @@ export async function saveUploadedDocument(
       geminiFileName,
       storeName,
       folderId: folderId || null,
+      fileUrl: fileUrl || null,
+      mimeType: mimeType || null,
       createdAt: serverTimestamp(),
     })
     return { id: docRef.id }
@@ -593,6 +635,76 @@ export async function resetDriveSyncStatus(companyId: string) {
     return true
   } catch (error) {
     firestoreLogger.error('Error resetting drive sync status:', error)
+    throw error
+  }
+}
+
+// ========== OneDrive接続管理 ==========
+
+// 会社のOneDrive接続情報の型定義
+export interface CompanyOnedriveConnection {
+  isConnected: boolean
+  connectedBy?: string
+  connectedByEmail?: string
+  connectedAt?: Date
+  accessToken?: string
+}
+
+// 会社のOneDrive接続情報を取得
+export async function getCompanyOnedriveConnection(companyId: string): Promise<CompanyOnedriveConnection | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'companies', companyId))
+    if (docSnap.exists()) {
+      const data = docSnap.data()
+      if (data.onedriveConnection) {
+        return {
+          ...data.onedriveConnection,
+          connectedAt: data.onedriveConnection.connectedAt?.toDate?.() || null,
+        }
+      }
+    }
+    return null
+  } catch (error) {
+    firestoreLogger.error('Error getting company OneDrive connection:', error)
+    return null
+  }
+}
+
+// 会社のOneDrive接続情報を保存
+export async function saveCompanyOnedriveConnection(
+  companyId: string,
+  connection: Partial<CompanyOnedriveConnection>
+) {
+  try {
+    const updateData: any = {
+      onedriveConnection: {
+        ...connection,
+        isConnected: true,
+        connectedAt: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    }
+    // setDoc + merge: true でドキュメントがなくても作成される
+    await setDoc(doc(db, 'companies', companyId), updateData, { merge: true })
+    return true
+  } catch (error) {
+    firestoreLogger.error('Error saving company OneDrive connection:', error)
+    throw error
+  }
+}
+
+// 会社のOneDrive接続を解除
+export async function disconnectCompanyOnedrive(companyId: string) {
+  try {
+    await setDoc(doc(db, 'companies', companyId), {
+      onedriveConnection: {
+        isConnected: false,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+    return true
+  } catch (error) {
+    firestoreLogger.error('Error disconnecting company OneDrive:', error)
     throw error
   }
 }

@@ -114,11 +114,7 @@ export default function LoginPage() {
         return
       }
 
-      // 5. 企業IDをローカルストレージに保存
-      localStorage.setItem('company_id', profileData.companyId)
-      localStorage.setItem('company_name', profileData.companyName)
-
-      // 6. チャットページにリダイレクト
+      // 5. チャットページにリダイレクト
       setLoading(false)
       router.push('/chat')
     } catch (err: unknown) {

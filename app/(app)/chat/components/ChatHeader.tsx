@@ -14,6 +14,8 @@ import {
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
   ChevronDownIcon,
+  DocumentPlusIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline'
 import { ALL_MODELS, ModelOption } from '@/lib/ai-providers'
 import type { ApiKeys } from '../types'
@@ -24,6 +26,10 @@ interface ChatHeaderProps {
   onModelSelect: (modelId: string) => void
   apiKeys: ApiKeys
   getModelDisplayName: (modelId: string) => string
+  onSaveToKnowledge?: () => void
+  isSavingToKnowledge?: boolean
+  knowledgeSaveSuccess?: boolean
+  canSaveToKnowledge?: boolean
 }
 
 export function ChatHeader({
@@ -32,6 +38,10 @@ export function ChatHeader({
   onModelSelect,
   apiKeys,
   getModelDisplayName,
+  onSaveToKnowledge,
+  isSavingToKnowledge,
+  knowledgeSaveSuccess,
+  canSaveToKnowledge,
 }: ChatHeaderProps) {
   const router = useRouter()
   const [showModelDropdown, setShowModelDropdown] = useState(false)
@@ -163,6 +173,44 @@ export function ChatHeader({
             </>
           )}
         </div>
+
+        {/* ナレッジ化ボタン */}
+        {onSaveToKnowledge && (
+          <button
+            onClick={onSaveToKnowledge}
+            disabled={isSavingToKnowledge || !canSaveToKnowledge}
+            className={`flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-lg transition-all ${
+              knowledgeSaveSuccess
+                ? 'bg-green-500 text-white'
+                : isSavingToKnowledge
+                ? 'bg-gray-200 text-gray-500 cursor-wait'
+                : canSaveToKnowledge
+                ? 'bg-black text-white hover:bg-gray-800'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={
+              knowledgeSaveSuccess
+                ? 'ナレッジに保存しました！'
+                : isSavingToKnowledge
+                ? '保存中...'
+                : 'この会話をナレッジとして保存'
+            }
+          >
+            {knowledgeSaveSuccess ? (
+              <CheckIcon className="w-4 h-4 md:w-5 md:h-5" />
+            ) : isSavingToKnowledge ? (
+              <svg className="animate-spin w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <DocumentPlusIcon className="w-4 h-4 md:w-5 md:h-5" />
+            )}
+            <span className="text-xs md:text-sm font-medium hidden sm:inline">
+              {knowledgeSaveSuccess ? '保存完了！' : isSavingToKnowledge ? '保存中...' : 'ナレッジ化'}
+            </span>
+          </button>
+        )}
 
         <button
           onClick={() => router.push('/knowledge')}

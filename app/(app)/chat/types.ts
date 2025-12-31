@@ -42,7 +42,15 @@ export interface FileSearchStore {
 export interface DocumentData {
   geminiFileName?: string
   originalFileName?: string
+  fileUrl?: string
+  mimeType?: string
   [key: string]: unknown
+}
+
+export interface DocumentInfo {
+  originalFileName: string
+  fileUrl?: string
+  mimeType?: string
 }
 
 export interface LoadedMessage {

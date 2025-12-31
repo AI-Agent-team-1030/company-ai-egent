@@ -145,11 +145,7 @@ export default function SignupPage() {
         createdAt: new Date(),
       })
 
-      // 5. 企業IDをローカルストレージに保存
-      localStorage.setItem('company_id', companyId)
-      localStorage.setItem('company_name', finalCompanyName)
-
-      // 6. チャットページにリダイレクト
+      // 5. チャットページにリダイレクト
       router.push('/chat')
     } catch (err: unknown) {
       authLogger.error('Signup error:', err)

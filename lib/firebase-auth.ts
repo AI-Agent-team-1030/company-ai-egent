@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   AuthError,
 } from 'firebase/auth'
-import { auth } from './firebase'
+import { auth, driveAuth } from './firebase'
 
 // Firebaseエラーかどうかを判定
 function isAuthError(error: unknown): error is AuthError {
@@ -35,7 +35,8 @@ function getErrorFromUnknown(error: unknown): { code?: string; message: string }
 const googleProvider = new GoogleAuthProvider()
 googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly')
 googleProvider.setCustomParameters({
-  prompt: 'consent'
+  prompt: 'select_account',  // アカウント選択画面を毎回表示
+  access_type: 'offline',    // リフレッシュトークンを取得
 })
 
 // 認証結果の型定義
@@ -132,6 +133,7 @@ interface GoogleAuthResult {
 }
 
 // Googleドライブ接続（ポップアップ方式）
+// 別のFirebase Authインスタンス(driveAuth)を使用し、メイン認証に影響を与えない
 export async function linkGoogleDrive(): Promise<GoogleAuthResult> {
   const currentUser = auth.currentUser
   if (!currentUser) {
@@ -139,14 +141,17 @@ export async function linkGoogleDrive(): Promise<GoogleAuthResult> {
   }
 
   try {
-    // ポップアップ方式でGoogle認証
-    const result = await signInWithPopup(auth, googleProvider)
+    // 別のAuthインスタンスでGoogle認証（メイン認証には影響しない）
+    const result = await signInWithPopup(driveAuth, googleProvider)
     const credential = GoogleAuthProvider.credentialFromResult(result)
     const accessToken = credential?.accessToken || null
 
     if (accessToken) {
       sessionStorage.setItem('google_drive_token', accessToken)
     }
+
+    // driveAuthからサインアウト（トークンは取得済みなので不要）
+    await firebaseSignOut(driveAuth)
 
     return { accessToken, error: null }
   } catch (error: unknown) {
@@ -191,4 +196,92 @@ function getGoogleErrorMessage(errorCode: string): string {
     default:
       return 'Google認証エラーが発生しました'
   }
+}
+
+// ============================================
+// OneDrive連携（MSAL使用）
+// ============================================
+
+// OneDrive認証結果の型定義
+interface OnedriveAuthResult {
+  accessToken: string | null
+  error: { message: string } | null
+}
+
+// OneDrive接続（MSALポップアップ方式）
+export async function linkOneDrive(): Promise<OnedriveAuthResult> {
+  const currentUser = auth.currentUser
+  if (!currentUser) {
+    return { accessToken: null, error: { message: 'ログインしていません' } }
+  }
+
+  // クライアントIDが設定されているか確認
+  if (!process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID) {
+    return {
+      accessToken: null,
+      error: { message: 'Microsoft Client IDが設定されていません。Azure ADアプリの登録が必要です。' }
+    }
+  }
+
+  try {
+    // MSALを動的インポート（サーバーサイドでのエラーを防ぐ）
+    const { initializeMsal, onedriveScopes } = await import('./msal-config')
+    const msalInstance = await initializeMsal()
+
+    // ポップアップでログイン
+    const response = await msalInstance.loginPopup({
+      ...onedriveScopes,
+      prompt: 'select_account', // アカウント選択画面を毎回表示
+    })
+
+    const accessToken = response.accessToken
+
+    if (accessToken) {
+      sessionStorage.setItem('onedrive_token', accessToken)
+    }
+
+    return { accessToken, error: null }
+  } catch (error: unknown) {
+    console.error('[OneDrive] Auth error:', error)
+    return { accessToken: null, error: { message: getMicrosoftErrorMessage(error) } }
+  }
+}
+
+// OneDriveのアクセストークンを取得
+export function getOnedriveToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return sessionStorage.getItem('onedrive_token')
+}
+
+// OneDriveの接続を解除
+export function clearOnedriveToken(): void {
+  if (typeof window === 'undefined') return
+  sessionStorage.removeItem('onedrive_token')
+}
+
+// Microsoftエラーメッセージ
+function getMicrosoftErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const msalError = error as { errorCode?: string; errorMessage?: string }
+    switch (msalError.errorCode) {
+      case 'user_cancelled':
+        return 'Microsoft認証がキャンセルされました'
+      case 'popup_window_error':
+        return 'ポップアップがブロックされました。ポップアップを許可してください'
+      case 'interaction_in_progress':
+        return '認証処理が進行中です。少し待ってから再試行してください'
+      case 'consent_required':
+        return 'アプリへのアクセス許可が必要です'
+      case 'login_required':
+        return 'Microsoftアカウントへのログインが必要です'
+      default:
+        if (msalError.errorMessage) {
+          return msalError.errorMessage
+        }
+    }
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'Microsoft認証エラーが発生しました'
 }

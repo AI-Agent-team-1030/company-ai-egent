@@ -14,15 +14,19 @@ import {
   LinkIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline'
-import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken, handleGoogleDriveRedirect, isGoogleDriveRedirectPending } from '@/lib/firebase-auth'
+import { linkGoogleDrive, getGoogleDriveToken, clearGoogleDriveToken, handleGoogleDriveRedirect, isGoogleDriveRedirectPending, linkOneDrive, clearOnedriveToken } from '@/lib/firebase-auth'
 import {
   getCompanyDriveConnection,
   saveCompanyDriveConnection,
   disconnectCompanyDrive,
   CompanyDriveConnection,
+  getCompanyOnedriveConnection,
+  saveCompanyOnedriveConnection,
+  disconnectCompanyOnedrive,
+  CompanyOnedriveConnection,
 } from '@/lib/firestore-chat'
 import { settingsLogger } from '@/lib/logger'
-import { TemplateManager } from './components/TemplateManager'
+import { AgentManager } from './components/AgentManager'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -60,6 +64,13 @@ export default function SettingsPage() {
   const [driveSuccess, setDriveSuccess] = useState<string | null>(null)
   const [isLoadingDriveStatus, setIsLoadingDriveStatus] = useState(true)
   const [isProcessingRedirect, setIsProcessingRedirect] = useState(false)
+
+  // OneDrive関連のstate
+  const [companyOnedriveConnection, setCompanyOnedriveConnection] = useState<CompanyOnedriveConnection | null>(null)
+  const [isConnectingOnedrive, setIsConnectingOnedrive] = useState(false)
+  const [onedriveError, setOnedriveError] = useState<string | null>(null)
+  const [onedriveSuccess, setOnedriveSuccess] = useState<string | null>(null)
+  const [isLoadingOnedriveStatus, setIsLoadingOnedriveStatus] = useState(true)
 
   // プロフィールからユーザー名を取得
   useEffect(() => {
@@ -152,6 +163,25 @@ export default function SettingsPage() {
       }
     }
     loadDriveConnection()
+  }, [profile?.companyId])
+
+  // 会社のOneDrive接続状態を確認
+  useEffect(() => {
+    const loadOnedriveConnection = async () => {
+      if (!profile?.companyId) {
+        setIsLoadingOnedriveStatus(false)
+        return
+      }
+      try {
+        const connection = await getCompanyOnedriveConnection(profile.companyId)
+        setCompanyOnedriveConnection(connection)
+      } catch (error) {
+        settingsLogger.error('Failed to load OneDrive connection:', error)
+      } finally {
+        setIsLoadingOnedriveStatus(false)
+      }
+    }
+    loadOnedriveConnection()
   }, [profile?.companyId])
 
   const fetchApiKeys = async () => {
@@ -301,6 +331,62 @@ export default function SettingsPage() {
       setCompanyDriveConnection(null)
     } catch (err: any) {
       setDriveError(err.message || '切断に失敗しました')
+    }
+  }
+
+  // 会社のOneDriveに接続
+  const handleConnectCompanyOnedrive = async () => {
+    if (!profile?.companyId || !user) return
+
+    setIsConnectingOnedrive(true)
+    setOnedriveError(null)
+    setOnedriveSuccess(null)
+
+    try {
+      const { accessToken, error } = await linkOneDrive()
+
+      if (error) {
+        setOnedriveError(error.message)
+        setIsConnectingOnedrive(false)
+        return
+      }
+
+      if (accessToken) {
+        settingsLogger.debug('[OneDrive] Saving connection to Firestore...')
+        await saveCompanyOnedriveConnection(profile.companyId, {
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+        })
+        settingsLogger.debug('[OneDrive] Connection saved successfully')
+
+        setCompanyOnedriveConnection({
+          isConnected: true,
+          connectedBy: user.uid,
+          connectedByEmail: user.email || undefined,
+          accessToken,
+          connectedAt: new Date(),
+        })
+        setOnedriveSuccess('OneDriveに接続しました！')
+        setTimeout(() => setOnedriveSuccess(null), 5000)
+        setIsConnectingOnedrive(false)
+      }
+    } catch (err: any) {
+      setOnedriveError(err.message || 'OneDriveへの接続に失敗しました')
+      setIsConnectingOnedrive(false)
+    }
+  }
+
+  // 会社のOneDriveから切断
+  const handleDisconnectCompanyOnedrive = async () => {
+    if (!profile?.companyId) return
+
+    try {
+      await disconnectCompanyOnedrive(profile.companyId)
+      clearOnedriveToken()
+      setCompanyOnedriveConnection(null)
+    } catch (err: any) {
+      setOnedriveError(err.message || '切断に失敗しました')
     }
   }
 
@@ -562,6 +648,136 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
+        {/* Company OneDrive Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+        >
+          <div className="border-b border-gray-200 p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CloudIcon className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900">会社のOneDrive連携</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Microsoft OneDriveの連携設定（チャット時に自動検索されます）
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {isLoadingOnedriveStatus ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+              </div>
+            ) : companyOnedriveConnection?.isConnected ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                  <div className="flex-1">
+                    <p className="font-medium text-green-800">OneDriveに接続中</p>
+                    <p className="text-sm text-green-600">
+                      チャットで質問すると、自動的にOneDrive内を検索します
+                    </p>
+                  </div>
+                </div>
+
+                {onedriveSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600">
+                    <CheckCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{onedriveSuccess}</span>
+                  </div>
+                )}
+
+                {onedriveError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                    <XCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{onedriveError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleDisconnectCompanyOnedrive}
+                  className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                >
+                  接続を解除
+                </button>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs text-yellow-700">
+                    <strong>注意:</strong> アクセストークンの有効期限が切れた場合は、再接続が必要になることがあります。
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  会社のOneDriveに接続すると、チャットで質問した際に自動的にOneDrive内のドキュメントを検索して回答に活用します。
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-2">接続すると...</h4>
+                  <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>チャットで質問すると自動でOneDriveを検索</li>
+                    <li>ドキュメントの内容を回答に活用</li>
+                    <li>同じ会社のメンバー全員が利用可能</li>
+                  </ul>
+                </div>
+
+                {onedriveSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600">
+                    <CheckCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{onedriveSuccess}</span>
+                  </div>
+                )}
+
+                {onedriveError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                    <XCircleIcon className="w-5 h-5" />
+                    <span className="text-sm">{onedriveError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleConnectCompanyOnedrive}
+                  disabled={isConnectingOnedrive}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isConnectingOnedrive ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      接続中...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-5 h-5" />
+                      会社のOneDriveに接続
+                    </>
+                  )}
+                </button>
+
+                <div className="text-xs text-gray-500 space-y-1">
+                  <p>接続時にMicrosoftアカウントへのログインが求められます。</p>
+                  <p>OneDriveの読み取り権限のみを使用します（書き込みは行いません）。</p>
+                  <p>接続したアカウントのOneDriveが会社全体で共有されます。</p>
+                </div>
+
+                {!process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs text-yellow-700">
+                      <strong>設定が必要:</strong> Microsoft Client IDが設定されていません。Azure Portalでアプリを登録し、環境変数を設定してください。
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
         {/* AI API Keys Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -687,9 +903,9 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* Prompt Templates Section */}
+        {/* AIエージェント管理セクション */}
         {profile?.companyId && user && (
-          <TemplateManager
+          <AgentManager
             companyId={profile.companyId}
             userId={user.uid}
             userName={profile.userName}

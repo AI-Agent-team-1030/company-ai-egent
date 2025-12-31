@@ -57,17 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               companyId: data.companyId,
               companyName: data.companyName,
             })
-            // ローカルストレージにも保存（互換性のため）
-            localStorage.setItem('company_id', data.companyId)
-            localStorage.setItem('company_name', data.companyName)
           }
         } catch (error) {
           authLogger.error('Failed to fetch profile:', error)
         }
       } else {
         setProfile(null)
-        localStorage.removeItem('company_id')
-        localStorage.removeItem('company_name')
       }
 
       setLoading(false)
@@ -85,8 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    localStorage.removeItem('company_id')
-    localStorage.removeItem('company_name')
     await firebaseSignOut()
     router.push('/auth/login')
   }
