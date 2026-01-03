@@ -2,23 +2,45 @@
  * チャットページ
  *
  * AIアシスタントとの対話画面
- * エージェント機能統合済み - 自動ルーティング対応
+ * マルチエージェントオーケストレーション対応
  */
 
 'use client'
 
-import { Suspense, useState, useCallback } from 'react'
+import { Suspense, useCallback, useState } from 'react'
 import { ALL_MODELS } from '@/lib/ai-providers'
 import { useChat } from './hooks'
-import { useAgentExecution, useAutoAgentRouting } from './hooks/useAgentExecution'
 import {
   ChatHeader,
   MessageList,
   ChatInput,
   AlternativeSwitcher,
+  AgentExecutionPanel,
 } from './components'
-import { AgentExecutionStatus } from './components/AgentExecutionStatus'
-import type { Agent } from '@/lib/types/agent'
+import type { AgentTool } from '@/lib/types/agent'
+
+interface AgentPlan {
+  name: string
+  role: string
+  systemPrompt: string
+  tools: AgentTool[]
+  dependsOn: string[]
+  priority: number
+}
+
+interface OrchestrationPlan {
+  taskAnalysis: string
+  complexity: 'simple' | 'moderate' | 'complex'
+  agents: AgentPlan[]
+  synthesisPrompt: string
+}
+
+interface AgentState {
+  name: string
+  role: string
+  status: 'creating' | 'ready' | 'running' | 'completed' | 'failed'
+  tools: AgentTool[]
+}
 
 function ChatContent() {
   const {
@@ -51,76 +73,122 @@ function ChatContent() {
     saveConversationAsKnowledge,
   } = useChat()
 
-  // エージェント関連のstate
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
-  const [isAutoMode, setIsAutoMode] = useState(true) // 自動生成モード
-  const [generationReason, setGenerationReason] = useState<string | null>(null)
-  const [showSavePrompt, setShowSavePrompt] = useState(false)
+  // エージェント状態管理
+  const [isOrchestrating, setIsOrchestrating] = useState(false)
+  const [orchestrationPlan, setOrchestrationPlan] = useState<OrchestrationPlan | null>(null)
+  const [agentStates, setAgentStates] = useState<AgentState[]>([])
+  const [currentPhase, setCurrentPhase] = useState<'idle' | 'analyzing' | 'creating' | 'executing' | 'complete'>('idle')
 
-  // 自動エージェント生成フック
-  const autoRouting = useAutoAgentRouting({
-    userId,
-    companyId,
-    onAgentGenerated: (agent, reasoning) => {
-      setSelectedAgent(agent)
-      setGenerationReason(reasoning)
-      setShowSavePrompt(true) // 常に保存プロンプトを表示
-      console.log('Generated agent:', agent.name, reasoning)
-    },
-  })
-
-  // エージェント実行フック
-  const agentExecution = useAgentExecution({
-    onComplete: (result) => {
-      console.log('Agent execution completed:', result)
-    },
-    onError: (error) => {
-      console.error('Agent execution error:', error)
-    },
-  })
-
-  // エージェント選択ハンドラー（手動選択時）
-  const handleAgentSelect = useCallback((agent: Agent | null) => {
-    setSelectedAgent(agent)
-    setGenerationReason(null)
-    setShowSavePrompt(false)
-    autoRouting.clearGenerated()
-  }, [autoRouting])
-
-  // 自動生成エージェントの保存
-  const handleSaveGeneratedAgent = useCallback(async () => {
-    const agentId = await autoRouting.saveGeneratedAgent()
-    if (agentId) {
-      setShowSavePrompt(false)
-      console.log('Agent saved:', agentId)
-    }
-  }, [autoRouting])
-
-  // 送信ハンドラー（自動エージェント生成対応）
+  // 送信ハンドラー（マルチエージェント対応）
   const handleSend = useCallback(async () => {
     if (!input.trim()) return
 
-    let agentSystemPrompt: string | undefined
-    let agentTools: string[] | undefined
+    // フェーズ1: タスク分析中
+    setCurrentPhase('analyzing')
+    setIsOrchestrating(true)
+    setOrchestrationPlan(null)
+    setAgentStates([])
 
-    // 自動モードの場合、まずエージェントを生成
-    if (isAutoMode) {
-      const result = await autoRouting.generateAgent(input)
-      if (result?.agent) {
-        console.log('Generated agent for task:', result.agent.name, 'Tools:', result.agent.tools)
-        // 生成されたエージェントのsystemPromptとtoolsを取得
-        agentSystemPrompt = result.agent.systemPrompt
-        agentTools = result.agent.tools
+    try {
+      // マルチエージェントでオーケストレーション
+      const orchestrateResponse = await fetch('/api/agent/orchestrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          userId,
+          companyId,
+        }),
+      })
+
+      if (orchestrateResponse.ok) {
+        const { plan } = await orchestrateResponse.json()
+        setOrchestrationPlan(plan)
+
+        // フェーズ2: エージェント作成中
+        setCurrentPhase('creating')
+
+        // エージェントを順次「作成」するアニメーション
+        const agents: AgentState[] = plan.agents.map((agent: AgentPlan) => ({
+          name: agent.name,
+          role: agent.role,
+          status: 'creating' as const,
+          tools: agent.tools,
+        }))
+
+        for (let i = 0; i < agents.length; i++) {
+          setAgentStates([...agents.slice(0, i + 1)])
+          await new Promise(resolve => setTimeout(resolve, 300))
+          agents[i].status = 'ready'
+          setAgentStates([...agents])
+        }
+
+        // フェーズ3: 実行中
+        setCurrentPhase('executing')
+
+        // 全エージェントを「実行中」に
+        agents.forEach(a => a.status = 'running')
+        setAgentStates([...agents])
+
+        // 全エージェントのツールを集約
+        const allTools = new Set<string>()
+        plan.agents.forEach((agent: { tools: string[] }) => {
+          agent.tools.forEach((tool: string) => allTools.add(tool))
+        })
+
+        // システムプロンプトを生成
+        let systemPrompt: string
+        if (plan.complexity === 'simple' && plan.agents.length === 1) {
+          systemPrompt = plan.agents[0].systemPrompt
+        } else {
+          const agentDescriptions = plan.agents
+            .map((a: { name: string; role: string }) => `- ${a.name}: ${a.role}`)
+            .join('\n')
+
+          systemPrompt = `あなたは複数の専門家の知見を統合するAIです。
+
+【タスク分析】
+${plan.taskAnalysis}
+
+【動員されたエージェント】
+${agentDescriptions}
+
+【指示】
+上記の専門家の視点を統合し、ユーザーのリクエストに対して包括的に回答してください。
+各専門分野の知見をバランスよく取り入れ、実用的な回答を心がけてください。`
+        }
+
+        setIsOrchestrating(false)
+
+        // エージェントのsystemPromptとtoolsを渡して送信
+        originalHandleSend(undefined, systemPrompt, Array.from(allTools))
+
+        // 完了時にエージェント状態を更新
+        setTimeout(() => {
+          agents.forEach(a => a.status = 'completed')
+          setAgentStates([...agents])
+          setCurrentPhase('complete')
+
+          // 3秒後にリセット
+          setTimeout(() => {
+            setCurrentPhase('idle')
+            setOrchestrationPlan(null)
+            setAgentStates([])
+          }, 3000)
+        }, 500)
+
+      } else {
+        setIsOrchestrating(false)
+        setCurrentPhase('idle')
+        originalHandleSend()
       }
-    } else if (selectedAgent) {
-      // 手動選択されたエージェントがあればそのsystemPromptとtoolsを使用
-      agentSystemPrompt = selectedAgent.systemPrompt
-      agentTools = selectedAgent.tools
+    } catch (err) {
+      console.error('Orchestration error:', err)
+      setIsOrchestrating(false)
+      setCurrentPhase('idle')
+      originalHandleSend()
     }
-
-    // エージェントのsystemPromptとtoolsを渡して送信
-    originalHandleSend(undefined, agentSystemPrompt, agentTools)
-  }, [input, isAutoMode, selectedAgent, autoRouting, originalHandleSend])
+  }, [input, userId, companyId, originalHandleSend])
 
   const getModelDisplayName = (modelId: string): string => {
     const model = ALL_MODELS.find((m) => m.id === modelId)
@@ -174,86 +242,25 @@ function ChatContent() {
         }}
       />
 
-      {/* ルーティング中・エージェント実行状況 */}
-      <div className="px-4 md:px-6">
-        {/* エージェント生成中の表示 */}
-        {autoRouting.isRouting && (
-          <div className="mb-2 flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">
-            <div className="animate-spin h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full" />
-            <span>タスクに最適なエージェントを生成中...</span>
-          </div>
-        )}
-
-        {/* 生成されたエージェントの表示 */}
-        {generationReason && selectedAgent && !autoRouting.isRouting && (
-          <div className="mb-2 flex items-center justify-between bg-indigo-50 px-3 py-2 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-indigo-700">
-              <span className="font-medium">🤖 {selectedAgent.name}</span>
-              <span className="text-indigo-600">を生成</span>
-              <span className="text-xs text-gray-500">({generationReason})</span>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedAgent(null)
-                setGenerationReason(null)
-                setShowSavePrompt(false)
-                autoRouting.clearGenerated()
-              }}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              クリア
-            </button>
-          </div>
-        )}
-
-        {/* エージェント保存プロンプト */}
-        {showSavePrompt && autoRouting.generationResult?.canSave && (
-          <div className="mb-2 flex items-center justify-between bg-amber-50 px-3 py-2 rounded-lg">
-            <span className="text-sm text-amber-700">
-              新しいエージェント「{selectedAgent?.name}」を保存しますか？
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveGeneratedAgent}
-                className="text-xs px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700"
-              >
-                保存
-              </button>
-              <button
-                onClick={() => setShowSavePrompt(false)}
-                className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-100 rounded"
-              >
-                スキップ
-              </button>
-            </div>
-          </div>
-        )}
-
-        <AgentExecutionStatus
-          isExecuting={agentExecution.isExecuting}
-          currentStep={agentExecution.currentStep ?? undefined}
-          stepMessage={agentExecution.stepMessage}
-          toolResults={agentExecution.toolResults}
-          agentName={selectedAgent?.name}
-        />
-      </div>
+      {/* エージェント実行パネル */}
+      <AgentExecutionPanel
+        phase={currentPhase}
+        plan={orchestrationPlan}
+        agentStates={agentStates}
+      />
 
       <ChatInput
         input={input}
         onInputChange={setInput}
         onSend={handleSend}
         onStop={handleStopTyping}
-        isProcessing={isProcessing || autoRouting.isRouting}
+        isProcessing={isProcessing || isOrchestrating}
         isTyping={isTyping}
         isKnowledgeSearchEnabled={isKnowledgeSearchEnabled}
         onKnowledgeSearchToggle={() => setIsKnowledgeSearchEnabled(!isKnowledgeSearchEnabled)}
         companyDriveConnection={companyDriveConnection}
         companyId={companyId}
         userId={userId}
-        selectedAgent={selectedAgent}
-        onAgentSelect={handleAgentSelect}
-        isAutoMode={isAutoMode}
-        onAutoModeToggle={() => setIsAutoMode(!isAutoMode)}
       />
     </div>
   )

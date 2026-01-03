@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   Agent,
   AgentExecutionStep,
@@ -435,6 +435,7 @@ interface UseAutoAgentRoutingOptions {
 
 interface UseAutoAgentRoutingReturn {
   isRouting: boolean
+  isSaving: boolean
   generatedAgent: Agent | null
   generationResult: GenerationResult | null
   error: string | null
@@ -450,6 +451,13 @@ export function useAutoAgentRouting(
   const [generatedAgent, setGeneratedAgent] = useState<Agent | null>(null)
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // optionsをrefで保持して最新の値を参照できるようにする
+  const optionsRef = useRef(options)
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   // メッセージからエージェントを生成
   const generateAgent = useCallback(
@@ -457,14 +465,16 @@ export function useAutoAgentRouting(
       setIsRouting(true)
       setError(null)
 
+      const currentOptions = optionsRef.current
+
       try {
         const response = await fetch('/api/agent/router', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            userId: options.userId,
-            companyId: options.companyId,
+            userId: currentOptions.userId,
+            companyId: currentOptions.companyId,
           }),
         })
 
@@ -476,26 +486,45 @@ export function useAutoAgentRouting(
 
         setGenerationResult(result)
         setGeneratedAgent(result.agent)
-        options.onAgentGenerated?.(result.agent, result.reasoning)
+        currentOptions.onAgentGenerated?.(result.agent, result.reasoning)
 
         setIsRouting(false)
         return result
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'エージェント生成に失敗しました'
         setError(errorMessage)
-        options.onError?.(errorMessage)
+        currentOptions.onError?.(errorMessage)
         setIsRouting(false)
         return null
       }
     },
-    [options]
+    []
   )
 
   // 生成したエージェントを保存
   const saveGeneratedAgent = useCallback(async (): Promise<string | null> => {
-    if (!generationResult?.agentInput || !options.userId || !options.companyId) {
+    const currentOptions = optionsRef.current
+
+    console.log('saveGeneratedAgent called:', {
+      hasAgentInput: !!generationResult?.agentInput,
+      userId: currentOptions.userId,
+      companyId: currentOptions.companyId,
+    })
+
+    if (!generationResult?.agentInput) {
+      setError('保存するエージェントがありません')
+      console.error('No agent input to save')
       return null
     }
+
+    if (!currentOptions.userId || !currentOptions.companyId) {
+      setError('ユーザー情報が取得できません。再度ログインしてください。')
+      console.error('Missing userId or companyId:', { userId: currentOptions.userId, companyId: currentOptions.companyId })
+      return null
+    }
+
+    setIsSaving(true)
+    setError(null)
 
     try {
       const response = await fetch('/api/agent/router', {
@@ -503,24 +532,29 @@ export function useAutoAgentRouting(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agentInput: generationResult.agentInput,
-          userId: options.userId,
-          companyId: options.companyId,
-          userName: options.userName,
+          userId: currentOptions.userId,
+          companyId: currentOptions.companyId,
+          userName: currentOptions.userName,
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('保存に失敗しました')
+        throw new Error(data.error || '保存に失敗しました')
       }
 
-      const data = await response.json()
+      console.log('Agent saved successfully:', data.agentId)
+      setIsSaving(false)
       return data.agentId
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '保存に失敗しました'
       setError(errorMessage)
+      console.error('Save error:', errorMessage)
+      setIsSaving(false)
       return null
     }
-  }, [generationResult, options])
+  }, [generationResult])
 
   // 生成結果をクリア
   const clearGenerated = useCallback(() => {
@@ -531,6 +565,7 @@ export function useAutoAgentRouting(
 
   return {
     isRouting,
+    isSaving,
     generatedAgent,
     generationResult,
     error,

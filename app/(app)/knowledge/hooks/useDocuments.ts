@@ -26,7 +26,7 @@ import {
   createFileSearchStore,
   uploadFile,
   importFileToStore,
-  deleteFile as deleteGeminiFile,
+  deleteFileCompletely,
 } from '@/lib/gemini-file-search'
 import { BUILT_IN_GEMINI_API_KEY } from '@/lib/ai-providers'
 import { knowledgeLogger } from '@/lib/logger'
@@ -183,13 +183,20 @@ export function useDocuments() {
     [documents, selectedFolderId]
   )
 
-  const handleDeleteDocument = useCallback(async (docId: string, geminiFileName?: string) => {
+  const handleDeleteDocument = useCallback(async (docId: string, geminiFileName?: string, storeName?: string) => {
     if (!confirm('このドキュメントを削除しますか？')) return false
 
     try {
       const apiKey = BUILT_IN_GEMINI_API_KEY
       if (geminiFileName && apiKey) {
-        await deleteGeminiFile(apiKey, geminiFileName).catch(() => {})
+        // ストア名が指定されている場合は完全削除（インデックスとファイル両方）
+        // 指定されていない場合は、最初のストアを使用
+        const targetStoreName = storeName || stores[0]?.storeName
+        if (targetStoreName) {
+          await deleteFileCompletely(apiKey, targetStoreName, geminiFileName).catch((err) => {
+            knowledgeLogger.warn('Failed to delete file completely:', err)
+          })
+        }
       }
       await deleteDocument(docId)
       setDocuments((prev) => prev.filter((d) => d.id !== docId))
@@ -198,7 +205,7 @@ export function useDocuments() {
       setError(err.message)
       return false
     }
-  }, [])
+  }, [stores])
 
   const updateProcessingStatus = useCallback(
     (

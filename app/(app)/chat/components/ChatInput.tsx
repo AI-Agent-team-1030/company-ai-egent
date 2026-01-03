@@ -1,7 +1,8 @@
 /**
  * チャット入力コンポーネント
  *
- * メッセージ入力、送信、エージェント選択、ナレッジ検索トグルを担当
+ * メッセージ入力、送信、ナレッジ検索トグルを担当
+ * エージェントは自動オーケストレーションで決定されるため選択UIは不要
  */
 
 'use client'
@@ -10,8 +11,6 @@ import { useRef, useCallback, useEffect } from 'react'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { TEXTAREA } from '@/lib/constants'
 import type { CompanyDriveConnection } from '@/lib/firestore-chat'
-import { AgentSelector } from './AgentSelector'
-import type { Agent } from '@/lib/types/agent'
 
 interface ChatInputProps {
   input: string
@@ -25,12 +24,6 @@ interface ChatInputProps {
   companyDriveConnection: CompanyDriveConnection | null
   companyId?: string
   userId?: string
-  // エージェント関連
-  selectedAgent: Agent | null
-  onAgentSelect: (agent: Agent | null) => void
-  // 自動ルーティング関連
-  isAutoMode?: boolean
-  onAutoModeToggle?: () => void
 }
 
 export function ChatInput({
@@ -43,12 +36,6 @@ export function ChatInput({
   isKnowledgeSearchEnabled,
   onKnowledgeSearchToggle,
   companyDriveConnection,
-  companyId,
-  userId,
-  selectedAgent,
-  onAgentSelect,
-  isAutoMode = true,
-  onAutoModeToggle,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -60,13 +47,6 @@ export function ChatInput({
         Math.min(textareaRef.current.scrollHeight, TEXTAREA.MAX_HEIGHT) + 'px'
     }
   }, [input])
-
-  const handleAgentSelect = useCallback(
-    (agent: Agent) => {
-      onAgentSelect(agent)
-    },
-    [onAgentSelect]
-  )
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -93,30 +73,15 @@ export function ChatInput({
     [input, isProcessing, onSend]
   )
 
-  // プレースホルダーテキスト
-  const placeholderText = selectedAgent
-    ? `${selectedAgent.name}に質問... (Shift+Enterで改行)`
-    : '相談内容を入力... (Shift+Enterで改行)'
-
   return (
     <div className="border-t border-gray-200 p-3 md:p-6 bg-white">
-      {/* 選択中のエージェント表示 */}
-      {selectedAgent && (
-        <div className="mb-2 flex items-center gap-2 text-sm">
-          <span className="text-gray-500">使用エージェント:</span>
-          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-            {selectedAgent.name}
-          </span>
-        </div>
-      )}
-
       <div className="flex gap-2 md:gap-3 items-end">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={placeholderText}
+          placeholder="相談内容を入力... (Shift+Enterで改行)"
           disabled={isProcessing}
           rows={1}
           className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900 placeholder-gray-500 disabled:bg-gray-100 text-sm md:text-base resize-none overflow-y-auto"
@@ -142,62 +107,35 @@ export function ChatInput({
         )}
       </div>
       <div className="flex items-center justify-between mt-2 md:mt-3">
-        {/* エージェントセレクター + 自動モードトグル */}
-        <div className="flex items-center gap-3">
-          {/* 自動モードトグル */}
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`text-xs font-medium ${
-                isAutoMode ? 'text-indigo-600' : 'text-gray-500'
-              }`}
-            >
-              自動
+        {/* 左側: ヒントとDrive連携 */}
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-xs text-gray-400 hidden sm:inline">
+            AIが最適な回答を生成します
+          </span>
+          {companyDriveConnection?.isConnected && (
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs">
+              <span className="hidden sm:inline">Drive連携中</span>
             </span>
-            <button
-              onClick={onAutoModeToggle}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
-                isAutoMode ? 'bg-indigo-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
-                  isAutoMode ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* 手動選択時のみエージェントセレクター表示 */}
-          {!isAutoMode && (
-            <AgentSelector
-              selectedAgent={selectedAgent}
-              onSelect={handleAgentSelect}
-              disabled={isProcessing || isTyping}
-              companyId={companyId}
-              userId={userId}
-            />
           )}
         </div>
+
+        {/* 右側: ナレッジ検索トグル（スライド式） */}
         <div className="flex items-center gap-2">
-          <span
-            className={`text-xs font-medium ${
-              isKnowledgeSearchEnabled ? 'text-green-600' : 'text-gray-500'
-            }`}
-          >
+          <span className={`text-xs font-medium ${isKnowledgeSearchEnabled ? 'text-indigo-600' : 'text-gray-400'}`}>
             ナレッジ検索
-            {companyDriveConnection?.isConnected && isKnowledgeSearchEnabled && (
-              <span className="text-blue-500 ml-1">+ Drive</span>
-            )}
           </span>
           <button
+            type="button"
             onClick={onKnowledgeSearchToggle}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
-              isKnowledgeSearchEnabled ? 'bg-green-500' : 'bg-gray-300'
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
+              isKnowledgeSearchEnabled ? 'bg-indigo-500' : 'bg-gray-300'
             }`}
+            role="switch"
+            aria-checked={isKnowledgeSearchEnabled}
           >
             <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
-                isKnowledgeSearchEnabled ? 'translate-x-5' : 'translate-x-0.5'
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
+                isKnowledgeSearchEnabled ? 'translate-x-4' : 'translate-x-0.5'
               }`}
             />
           </button>

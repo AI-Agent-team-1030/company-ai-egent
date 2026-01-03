@@ -14,7 +14,7 @@ interface DocumentListProps {
   documents: KnowledgeDocument[]
   folders: KnowledgeFolder[]
   loading: boolean
-  onDelete: (docId: string, geminiFileName?: string) => void
+  onDelete: (docId: string, geminiFileName?: string, storeName?: string) => void
 }
 
 function getFileTypeIcon(fileName: string): string {
@@ -95,7 +95,7 @@ export function DocumentList({ documents, folders, loading, onDelete }: Document
               </div>
             </div>
             <button
-              onClick={() => onDelete(doc.id, doc.geminiFileName)}
+              onClick={() => onDelete(doc.id, doc.geminiFileName, doc.storeName)}
               className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
             >
               <TrashIcon className="w-5 h-5" />

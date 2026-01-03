@@ -26,7 +26,6 @@ import {
   CompanyOnedriveConnection,
 } from '@/lib/firestore-chat'
 import { settingsLogger } from '@/lib/logger'
-import { AgentManager } from './components/AgentManager'
 
 // AIプロバイダーの定義（Geminiは標準搭載のため除外）
 const AI_PROVIDERS = [
@@ -903,14 +902,6 @@ export default function SettingsPage() {
           </div>
         </motion.div>
 
-        {/* AIエージェント管理セクション */}
-        {profile?.companyId && user && (
-          <AgentManager
-            companyId={profile.companyId}
-            userId={user.uid}
-            userName={profile.userName}
-          />
-        )}
       </div>
     </div>
   )

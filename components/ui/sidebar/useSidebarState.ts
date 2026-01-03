@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getConversations, deleteConversation as firestoreDeleteConversation } from '@/lib/firestore-chat'
+import { getAgentExecutions, deleteAgentExecution as firestoreDeleteAgentExecution, type AgentExecution } from '@/lib/firestore-agent'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { sidebarLogger } from '@/lib/logger'
 import { SIDEBAR, TOAST } from '@/lib/constants'
@@ -17,6 +18,16 @@ export interface Conversation {
   title: string
   updated_at: string
 }
+
+export interface AgentHistory {
+  id: string
+  taskSummary: string
+  status: 'completed' | 'failed' | 'cancelled'
+  agentCount: number
+  createdAt: string
+}
+
+export type HistoryTab = 'chat' | 'agent'
 
 export function useSidebarState() {
   const pathname = usePathname()
@@ -28,6 +39,8 @@ export function useSidebarState() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showLogoutMenu, setShowLogoutMenu] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [agentHistories, setAgentHistories] = useState<AgentHistory[]>([])
+  const [activeTab, setActiveTab] = useState<HistoryTab>('agent')
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -65,13 +78,38 @@ export function useSidebarState() {
     }
   }, [user])
 
+  // Fetch agent histories
+  const fetchAgentHistories = useCallback(async () => {
+    if (!user) return
+    try {
+      sidebarLogger.debug('Fetching agent histories for user:', user.uid)
+      const result = await getAgentExecutions(user.uid)
+      const mapped: AgentHistory[] = result.map((exec) => ({
+        id: exec.id,
+        taskSummary: exec.taskSummary,
+        status: exec.status,
+        agentCount: exec.orchestrationPlan?.agents?.length || 0,
+        createdAt: exec.createdAt instanceof Date
+          ? exec.createdAt.toISOString()
+          : new Date().toISOString(),
+      }))
+      setAgentHistories(mapped)
+    } catch (error) {
+      sidebarLogger.error('Failed to fetch agent histories:', error)
+    }
+  }, [user])
+
   useEffect(() => {
-    if (user) fetchConversations()
-  }, [user, fetchConversations])
+    if (user) {
+      fetchConversations()
+      fetchAgentHistories()
+    }
+  }, [user, fetchConversations, fetchAgentHistories])
 
   useEffect(() => {
     if (user && pathname.includes('/chat')) fetchConversations()
-  }, [pathname, user, fetchConversations])
+    if (user && pathname.includes('/agent-dashboard')) fetchAgentHistories()
+  }, [pathname, user, fetchConversations, fetchAgentHistories])
 
   // Toast auto-hide
   useEffect(() => {
@@ -216,6 +254,37 @@ export function useSidebarState() {
     closeMobileSidebar()
   }, [router, closeMobileSidebar])
 
+  const navigateToAgentDashboard = useCallback(
+    (executionId?: string) => {
+      if (executionId) {
+        router.push(`/agent-dashboard?id=${executionId}`)
+      } else {
+        router.push('/agent-dashboard')
+      }
+      closeMobileSidebar()
+    },
+    [router, closeMobileSidebar]
+  )
+
+  const handleDeleteAgentExecution = useCallback(
+    async (executionId: string) => {
+      try {
+        setAgentHistories((prev) => prev.filter((exec) => exec.id !== executionId))
+        setDeleteConfirmId(null)
+        await firestoreDeleteAgentExecution(executionId)
+
+        if (pathname.includes(executionId)) {
+          router.push('/agent-dashboard')
+        }
+        showMessage('実行履歴を削除しました')
+      } catch (error) {
+        await fetchAgentHistories()
+        showMessage('削除に失敗しました')
+      }
+    },
+    [pathname, router, fetchAgentHistories, showMessage]
+  )
+
   return {
     // State
     isCollapsed,
@@ -223,6 +292,9 @@ export function useSidebarState() {
     showLogoutMenu,
     setShowLogoutMenu,
     conversations,
+    agentHistories,
+    activeTab,
+    setActiveTab,
     deleteConfirmId,
     setDeleteConfirmId,
     showToast,
@@ -244,11 +316,13 @@ export function useSidebarState() {
 
     // Actions
     handleDeleteConversation,
+    handleDeleteAgentExecution,
     handleBulkDelete,
     toggleSelection,
     toggleSelectAll,
     getUserInitial,
     navigateToChat,
+    navigateToAgentDashboard,
     navigateToSettings,
     signOut,
   }

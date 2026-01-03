@@ -594,6 +594,29 @@ export async function deleteFile(
   }
 }
 
+// ファイルを完全削除（Gemini Storageから削除）
+// ファイルを削除すると、File Search Storeからの検索結果にも表示されなくなる
+export async function deleteFileCompletely(
+  apiKey: string,
+  _storeName: string, // 将来の互換性のため保持
+  fileName: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    // Gemini Storage からファイルを削除
+    // これによりFile Search Storeの検索結果からも除外される
+    const deleteResult = await deleteFile(apiKey, fileName)
+    if (deleteResult.error) {
+      throw new Error(deleteResult.error)
+    }
+
+    geminiLogger.debug(`File ${fileName} deleted from Gemini storage`)
+    return { success: true, error: null }
+  } catch (error: any) {
+    geminiLogger.error('File deletion error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 // ファイル情報
 export interface FileInfo {
   name: string

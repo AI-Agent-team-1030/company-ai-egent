@@ -275,9 +275,10 @@ export function useChat() {
     isSendingRef.current = true
 
     // エージェントのツール設定（指定がなければナレッジ検索のみ）
+    // ただし、ユーザーがナレッジ検索をOFFにしている場合はそれを優先
     const enabledTools = agentTools || ['knowledge_search']
-    const shouldSearchKnowledge = enabledTools.includes('knowledge_search')
-    const shouldSearchDrive = enabledTools.includes('drive_search')
+    const shouldSearchKnowledge = enabledTools.includes('knowledge_search') && isKnowledgeSearchEnabled
+    const shouldSearchDrive = enabledTools.includes('drive_search') && isKnowledgeSearchEnabled
     const shouldSearchWeb = enabledTools.includes('web_search')
 
     const modelInfo = getSelectedModelInfo()
