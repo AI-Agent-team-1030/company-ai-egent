@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey)
 
-    // Gemini 2.0 Flash with Google Search grounding
+    // Gemini 2.5 Flash with Google Search grounding
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       tools: [{ googleSearch: {} } as unknown as { codeExecution: Record<string, never> }],
     })
 

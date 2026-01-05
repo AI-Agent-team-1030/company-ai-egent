@@ -9,6 +9,7 @@ import {
   AgentCitation,
   ToolExecutionResult,
 } from './types/agent'
+import { searchSimilar } from './firestore-vector-search'
 
 // ============================================
 // ツール実行結果の型
@@ -49,7 +50,10 @@ export interface DocumentGenerateResult {
 // ============================================
 
 /**
- * ナレッジベース検索を実行
+ * ナレッジベース検索を実行（Gemini File Search）
+ *
+ * 注意: AI Studioモードでは vertexAiSearch は使用できないため、
+ * fileSearch ツールを使用します。
  */
 export async function executeKnowledgeSearch(
   query: string,
@@ -71,7 +75,10 @@ export async function executeKnowledgeSearch(
       }
     }
 
-    // Gemini File Search APIを使用
+    // Gemini File Search APIを使用（AI Studio互換）
+    // 注: fileSearchStores[].id は "fileSearchStores/xxx" 形式である必要がある
+    const storeNames = fileSearchStores.map(s => s.id).slice(0, 5)
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
@@ -80,10 +87,8 @@ export async function executeKnowledgeSearch(
         body: JSON.stringify({
           contents: [{ parts: [{ text: query }] }],
           tools: [{
-            retrieval: {
-              vertexAiSearch: {
-                dataStore: fileSearchStores.map(s => s.id).slice(0, 5),
-              },
+            fileSearch: {
+              fileSearchStoreNames: storeNames,
             },
           }],
         }),
@@ -119,6 +124,68 @@ export async function executeKnowledgeSearch(
       status: 'success',
       result: {
         citations: citations.slice(0, options?.maxResults || 10),
+        totalResults: citations.length,
+      } as KnowledgeSearchResult,
+      executionTimeMs: Date.now() - startTime,
+    }
+  } catch (error) {
+    return {
+      tool: 'knowledge_search',
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      executionTimeMs: Date.now() - startTime,
+    }
+  }
+}
+
+/**
+ * Firestore Vector Searchでナレッジ検索を実行
+ */
+export async function executeFirestoreKnowledgeSearch(
+  query: string,
+  apiKey: string,
+  companyId: string,
+  options?: {
+    maxResults?: number
+  }
+): Promise<ToolExecutionResult> {
+  const startTime = Date.now()
+
+  try {
+    if (!companyId) {
+      return {
+        tool: 'knowledge_search',
+        status: 'skipped',
+        result: { citations: [], totalResults: 0 },
+        executionTimeMs: Date.now() - startTime,
+      }
+    }
+
+    // Firestore Vector Searchを使用
+    const searchResult = await searchSimilar(query, apiKey, {
+      companyId,
+      limit: options?.maxResults || 5,
+      threshold: 0.3,  // 最低類似度
+    })
+
+    if (searchResult.error) {
+      throw new Error(searchResult.error)
+    }
+
+    // 引用情報を生成
+    const citations: AgentCitation[] = searchResult.results.map(r => ({
+      title: r.chunk.metadata.documentTitle,
+      content: r.chunk.content,
+      source: r.chunk.metadata.documentId,
+      sourceType: 'knowledge' as const,
+      score: r.score,
+    }))
+
+    return {
+      tool: 'knowledge_search',
+      status: 'success',
+      result: {
+        citations,
         totalResults: citations.length,
       } as KnowledgeSearchResult,
       executionTimeMs: Date.now() - startTime,
@@ -422,6 +489,9 @@ export interface ToolExecutionContext {
   driveAccessToken?: string
   driveFolderId?: string
   fileSearchStores?: Array<{ id: string; name: string }>
+  // Firestore Vector Search用
+  companyId?: string
+  useFirestoreVectorSearch?: boolean  // trueでFirestore Vector Searchを使用
 }
 
 /**
@@ -433,6 +503,15 @@ export async function executeTool(
 ): Promise<ToolExecutionResult> {
   switch (tool) {
     case 'knowledge_search':
+      // Firestore Vector Searchを使用する場合
+      if (context.useFirestoreVectorSearch && context.companyId) {
+        return executeFirestoreKnowledgeSearch(
+          context.query,
+          context.geminiApiKey || '',
+          context.companyId
+        )
+      }
+      // 従来のGemini File Searchを使用
       return executeKnowledgeSearch(
         context.query,
         context.geminiApiKey || '',

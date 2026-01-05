@@ -1,8 +1,15 @@
+import dynamic from 'next/dynamic'
 import Sidebar from '@/components/ui/Sidebar'
 import Header from '@/components/ui/Header'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { ChatSidePanel } from '@/components/ChatSidePanel'
 import { ChatPanelProvider } from '@/contexts/ChatPanelContext'
+import { BackgroundTaskNotification } from '@/components/BackgroundTaskNotification'
+
+// ChatSidePanelを遅延読み込み（初期表示を高速化）
+const ChatSidePanel = dynamic(
+  () => import('@/components/ChatSidePanel').then(mod => ({ default: mod.ChatSidePanel })),
+  { ssr: false }
+)
 
 export default function AppLayout({
   children,
@@ -31,6 +38,8 @@ export default function AppLayout({
           </div>
         </div>
       </ChatPanelProvider>
+      {/* バックグラウンドタスク通知 */}
+      <BackgroundTaskNotification />
     </ProtectedRoute>
   )
 }

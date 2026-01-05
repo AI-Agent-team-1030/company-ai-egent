@@ -25,15 +25,32 @@ import {
   CompanyOnedriveConnection,
 } from '@/lib/firestore-chat'
 import {
-  queryWithFileSearch,
   Citation,
   generateSearchQuery,
-  advancedKnowledgeSearch,
   summarizeConversation,
   uploadFile,
   importFileToStore,
   createFileSearchStore,
+  createGeminiClient,
+  RateLimitError,
 } from '@/lib/gemini-file-search'
+// VectorSearchResult型定義（APIレスポンス用）
+interface VectorSearchResult {
+  chunk: {
+    id: string
+    content: string
+    metadata: {
+      documentId: string
+      documentTitle: string
+      chunkIndex: number
+      totalChunks: number
+      companyId: string
+      folderId?: string
+    }
+    createdAt: Date
+  }
+  score: number
+}
 import {
   ALL_MODELS,
   ModelOption,
@@ -54,7 +71,13 @@ const createWelcomeMessage = (): ChatMessage => ({
   timestamp: new Date(),
 })
 
-export function useChat() {
+interface UseChatOptions {
+  externalConversationId?: string | null
+  disableRouting?: boolean
+}
+
+export function useChat(options: UseChatOptions = {}) {
+  const { externalConversationId, disableRouting = false } = options
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, profile } = useAuth()
@@ -69,7 +92,8 @@ export function useChat() {
   const [currentAiMessageId, setCurrentAiMessageId] = useState<string | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [shouldStopTyping, setShouldStopTyping] = useState(false)
-  const [fileSearchStores, setFileSearchStores] = useState<string[]>([])
+  const [hasIndexedKnowledge, setHasIndexedKnowledge] = useState(false)
+  const [fileSearchStores, setFileSearchStores] = useState<string[]>([]) // Legacy - for save to knowledge
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ anthropic: '', openai: '' })
   const [companyDriveConnection, setCompanyDriveConnection] =
@@ -105,29 +129,29 @@ export function useChat() {
     fetchApiKeys()
   }, [user])
 
-  // File Search StoresとDrive接続を取得
+  // ナレッジインデックスとDrive接続を取得
   useEffect(() => {
-    const loadStoresAndDrive = async () => {
+    const loadKnowledgeAndDrive = async () => {
       if (!profile?.companyId) return
 
+      // Firestore Vector Searchのインデックス済みドキュメント数を確認
+      try {
+        const indexRes = await fetch(`/api/knowledge/index?companyId=${profile.companyId}`)
+        if (indexRes.ok) {
+          const indexData = await indexRes.json()
+          chatLogger.debug('Indexed knowledge documents:', indexData.indexedDocuments)
+          setHasIndexedKnowledge(indexData.indexedDocuments > 0)
+        }
+      } catch (err) {
+        chatLogger.error('Failed to get indexed document count:', err)
+      }
+
+      // Legacy: File Search Stores (ナレッジ保存用に維持)
       const firestoreStores = await getCompanyFileSearchStores(profile.companyId)
       const firestoreStoreNames = (firestoreStores as FileSearchStore[])
         .map((s) => s.storeName)
         .filter((name): name is string => Boolean(name))
-      chatLogger.debug('Firestore File Search Stores:', firestoreStoreNames)
-
-      const driveSyncStatus = await getCompanyDriveSyncStatus(profile.companyId)
-
-      const allStoreNames = Array.from(
-        new Set([
-          ...firestoreStoreNames,
-          ...(driveSyncStatus?.driveStoreName ? [driveSyncStatus.driveStoreName] : []),
-        ])
-      )
-
-      const limitedStoreNames = allStoreNames.slice(0, GEMINI_LIMITS.MAX_STORES_PER_QUERY)
-      chatLogger.debug('Final Store Names:', limitedStoreNames)
-      setFileSearchStores(limitedStoreNames)
+      setFileSearchStores(firestoreStoreNames)
 
       const driveConnection = await getCompanyDriveConnection(profile.companyId)
       setCompanyDriveConnection(driveConnection)
@@ -148,12 +172,16 @@ export function useChat() {
       })
       setDocumentInfoMap(infoMap)
     }
-    loadStoresAndDrive()
+    loadKnowledgeAndDrive()
   }, [profile?.companyId])
 
-  // URLパラメータから会話IDを取得
+  // 会話IDを取得（外部指定 or URLパラメータ）
   useEffect(() => {
-    const id = searchParams.get('id')
+    // 外部から指定されたIDを優先
+    const id = externalConversationId !== undefined
+      ? externalConversationId
+      : searchParams.get('id')
+
     if (id && id !== conversationId) {
       loadExistingConversation(id)
     } else if (!id && conversationId) {
@@ -161,7 +189,7 @@ export function useChat() {
     } else if (!id && !conversationId && messages.length === 0) {
       setMessages([createWelcomeMessage()])
     }
-  }, [searchParams])
+  }, [searchParams, externalConversationId])
 
   // クリーンアップ
   useEffect(() => {
@@ -201,12 +229,10 @@ export function useChat() {
         if (latestAi) setCurrentAiMessageId(latestAi.id)
       } else {
         resetChat()
-        router.push('/chat')
       }
     } catch (err) {
       chatLogger.error('Error loading conversation:', err)
       resetChat()
-      router.push('/chat')
     }
   }
 
@@ -215,7 +241,10 @@ export function useChat() {
     try {
       const conversation = await createConversation(user.uid, '新しい会話')
       setConversationId(conversation.id)
-      router.replace(`/chat?id=${conversation.id}`, { scroll: false })
+      // disableRouting が false の場合のみ URL を更新
+      if (!disableRouting) {
+        router.replace(`/chat?id=${conversation.id}`, { scroll: false })
+      }
       return conversation.id
     } catch (err) {
       chatLogger.error('Error creating conversation:', err)
@@ -342,7 +371,7 @@ export function useChat() {
       // AIに最適な検索クエリを生成させる
       let searchQueries: string[] = [text]
       const hasDriveConnection = companyDriveConnection?.isConnected || companyOnedriveConnection?.isConnected
-      const needsSearch = (shouldSearchKnowledge && fileSearchStores.length > 0) ||
+      const needsSearch = (shouldSearchKnowledge && hasIndexedKnowledge) ||
                           (shouldSearchDrive && hasDriveConnection) ||
                           shouldSearchWeb
       if (needsSearch) {
@@ -480,52 +509,51 @@ export function useChat() {
         }
       }
 
-      // ナレッジ検索（エージェントのツールにknowledge_searchがある場合のみ）
+      // ナレッジ検索（Firestore Vector Search - API経由）
       let knowledgeContext = ''
-      if (shouldSearchKnowledge && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
+      if (shouldSearchKnowledge && hasIndexedKnowledge && hasKnowledgeApiKey && profile?.companyId) {
         setProcessingStep(PROCESSING_STEPS.SEARCHING_KNOWLEDGE)
         try {
-          const searchResult = await advancedKnowledgeSearch(
-            BUILT_IN_GEMINI_API_KEY,
-            fileSearchStores,
-            text,
-            searchQueries
-          )
+          const searchRes = await fetch('/api/knowledge/vector-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'search',
+              query: text,
+              queries: searchQueries,
+              companyId: profile.companyId,
+              apiKey: BUILT_IN_GEMINI_API_KEY,
+              options: {
+                limit: 5,
+                threshold: 0.3,
+                rerank: true,
+              },
+            }),
+          })
+          const searchResult = await searchRes.json()
 
-          if (!searchResult.error && searchResult.citations.length > 0) {
+          if (!searchResult.error && searchResult.results?.length > 0) {
             knowledgeContext = '\n\n【社内ナレッジから見つかった関連情報】\n'
-            searchResult.citations.forEach((citation) => {
-              let displayTitle = citation.title
+            searchResult.results.forEach((result: VectorSearchResult) => {
+              const displayTitle = result.chunk.metadata.documentTitle
+              const documentId = result.chunk.metadata.documentId
+
+              // documentInfoMapからファイル情報を取得
               let fileUrl: string | undefined
               let mimeType: string | undefined
-
-              if (citation.uri) {
-                const fileNameMatch = citation.uri.match(/files\/([^/?]+)/)
-                if (fileNameMatch) {
-                  const geminiFileName = `files/${fileNameMatch[1]}`
-                  const docInfo = documentInfoMap[geminiFileName]
-                  if (docInfo) {
-                    displayTitle = docInfo.originalFileName
-                    fileUrl = docInfo.fileUrl
-                    mimeType = docInfo.mimeType
-                  }
-                }
+              const docInfo = Object.values(documentInfoMap).find(
+                (info) => info.originalFileName === displayTitle
+              )
+              if (docInfo) {
+                fileUrl = docInfo.fileUrl
+                mimeType = docInfo.mimeType
               }
 
-              if (displayTitle.startsWith('files/')) {
-                const docInfo = documentInfoMap[displayTitle]
-                if (docInfo) {
-                  displayTitle = docInfo.originalFileName
-                  fileUrl = docInfo.fileUrl
-                  mimeType = docInfo.mimeType
-                }
-              }
-
-              knowledgeContext += `\n--- ${displayTitle} ---\n${citation.text}\n`
+              knowledgeContext += `\n--- ${displayTitle} (スコア: ${result.score.toFixed(2)}) ---\n${result.chunk.content}\n`
               citations.push({
-                ...citation,
                 title: displayTitle,
-                uri: fileUrl || citation.uri,
+                text: result.chunk.content,
+                uri: fileUrl || documentId,
                 source: 'knowledge',
                 ...(mimeType ? { mimeType } : {}),
               })
@@ -537,11 +565,12 @@ export function useChat() {
       }
 
       // Web検索（エージェントのツールにweb_searchがある場合のみ）
+      // レート制限対策で1クエリのみ実行
       let webContext = ''
       if (shouldSearchWeb) {
         setProcessingStep('Webを検索中...')
         try {
-          const webQueries = searchQueries.slice(0, 2)
+          const webQueries = searchQueries.slice(0, 1) // レート制限対策: 2→1に削減
           const webSearchPromises = webQueries.map((query) =>
             fetch('/api/web/search', {
               method: 'POST',
@@ -706,7 +735,27 @@ export function useChat() {
       typeNextCharacter()
     } catch (err: unknown) {
       chatLogger.error('Error sending message:', err)
-      const message = err instanceof Error ? err.message : 'メッセージの送信に失敗しました'
+
+      // 429エラー（レート制限）の検出
+      let message: string
+      if (err instanceof RateLimitError) {
+        message = 'APIのレート制限に達しました。30秒ほど待ってから再度お試しください。'
+      } else if (err instanceof Error) {
+        // エラーメッセージから429を検出
+        if (
+          err.message.includes('429') ||
+          err.message.includes('RESOURCE_EXHAUSTED') ||
+          err.message.includes('Quota exceeded') ||
+          err.message.includes('rate limit')
+        ) {
+          message = 'APIのレート制限に達しました。30秒ほど待ってから再度お試しください。'
+        } else {
+          message = err.message
+        }
+      } else {
+        message = 'メッセージの送信に失敗しました'
+      }
+
       setError(message)
       setIsProcessing(false)
       setProcessingStep('')
@@ -745,29 +794,59 @@ export function useChat() {
       let citations: Citation[] = []
       let usedModel = selectedModel
 
-      if (isKnowledgeSearchEnabled && fileSearchStores.length > 0 && hasKnowledgeApiKey) {
-        const result = await queryWithFileSearch(
-          BUILT_IN_GEMINI_API_KEY,
-          fileSearchStores,
-          userMessageContent,
-          '日本語で回答してください。質問に対して丁寧に回答してください。'
-        )
-        if (result.error) throw new Error(result.error)
-        aiResponse = result.answer
-        citations = result.citations
-        usedModel = 'gemini-2.5-pro'
-      } else {
-        const apiKey = getApiKeyForProvider(modelInfo.provider)
-        const result = await aiChat(
-          modelInfo.provider,
-          apiKey,
-          history,
-          selectedModel,
-          '日本語で回答してください。質問に対して丁寧に回答してください。'
-        )
-        if (result.error) throw new Error(result.error)
-        aiResponse = result.content
+      // ナレッジ検索してコンテキストを構築（API経由）
+      let knowledgeContext = ''
+      if (isKnowledgeSearchEnabled && hasIndexedKnowledge && hasKnowledgeApiKey && profile?.companyId) {
+        try {
+          const searchRes = await fetch('/api/knowledge/vector-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'search',
+              query: userMessageContent,
+              queries: [userMessageContent],
+              companyId: profile.companyId,
+              apiKey: BUILT_IN_GEMINI_API_KEY,
+              options: {
+                limit: 5,
+                threshold: 0.3,
+              },
+            }),
+          })
+          const searchResult = await searchRes.json()
+
+          if (!searchResult.error && searchResult.results?.length > 0) {
+            knowledgeContext = '\n\n【参考情報】\n'
+            searchResult.results.forEach((result: VectorSearchResult) => {
+              knowledgeContext += `\n--- ${result.chunk.metadata.documentTitle} ---\n${result.chunk.content}\n`
+              citations.push({
+                title: result.chunk.metadata.documentTitle,
+                text: result.chunk.content,
+                uri: result.chunk.metadata.documentId,
+                source: 'knowledge',
+              })
+            })
+          }
+        } catch (err) {
+          chatLogger.error('Knowledge search error in regenerate:', err)
+        }
       }
+
+      // AI回答生成
+      const apiKey = getApiKeyForProvider(modelInfo.provider)
+      const systemPrompt = knowledgeContext
+        ? `以下の参考情報を踏まえて、日本語で丁寧に回答してください。${knowledgeContext}`
+        : '日本語で回答してください。質問に対して丁寧に回答してください。'
+
+      const result = await aiChat(
+        modelInfo.provider,
+        apiKey,
+        history,
+        selectedModel,
+        systemPrompt
+      )
+      if (result.error) throw new Error(result.error)
+      aiResponse = result.content
 
       if (conversationId) {
         await addMessage(conversationId, 'assistant', aiResponse, citations)

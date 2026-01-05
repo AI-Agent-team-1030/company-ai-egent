@@ -2,9 +2,10 @@
  * ドキュメント管理フック
  *
  * ドキュメントとフォルダの CRUD 操作、ファイルアップロード処理を担当
+ * アップロードはバックグラウンドで実行し、UIをブロックしない
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { DriveFile, downloadGoogleFile, setDriveAccessToken } from '@/lib/google-drive'
 import {
@@ -17,6 +18,7 @@ import {
   updateFolder,
   deleteFolder,
   deleteDocument,
+  updateDocumentFolder,
   getCompanyDriveConnection,
   CompanyDriveConnection,
   uploadFileToStorage,
@@ -27,9 +29,12 @@ import {
   uploadFile,
   importFileToStore,
   deleteFileCompletely,
+  createGeminiClient,
 } from '@/lib/gemini-file-search'
+// indexDocument と deleteDocumentIndex は API経由で使用
 import { BUILT_IN_GEMINI_API_KEY } from '@/lib/ai-providers'
 import { knowledgeLogger } from '@/lib/logger'
+import { useBackgroundTaskStore } from '@/stores/backgroundTaskStore'
 import type {
   KnowledgeDocument,
   KnowledgeFolder,
@@ -49,6 +54,12 @@ export function useDocuments() {
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({})
   const [companyDriveConnection, setCompanyDriveConnection] =
     useState<CompanyDriveConnection | null>(null)
+
+  // バックグラウンドタスク管理
+  const storesRef = useRef<FileSearchStore[]>([])
+
+  // storeの関数を直接取得（クロージャ問題を回避）
+  const getTaskActions = () => useBackgroundTaskStore.getState()
 
   // 会社レベルのGoogleドライブ接続状態を確認
   useEffect(() => {
@@ -119,6 +130,13 @@ export function useDocuments() {
           parentFolderId: f.parentFolderId,
         }))
       )
+
+      // storesをrefにも保存（バックグラウンド処理用）
+      storesRef.current = storesData.map((s: any) => ({
+        id: s.id,
+        storeName: s.storeName,
+        displayName: s.displayName,
+      }))
     } catch (err: any) {
       knowledgeLogger.error('Error fetching data:', err)
       setError(err.message)
@@ -188,24 +206,60 @@ export function useDocuments() {
 
     try {
       const apiKey = BUILT_IN_GEMINI_API_KEY
+
+      // 1. Gemini File Search Store から削除
       if (geminiFileName && apiKey) {
-        // ストア名が指定されている場合は完全削除（インデックスとファイル両方）
-        // 指定されていない場合は、最初のストアを使用
         const targetStoreName = storeName || stores[0]?.storeName
         if (targetStoreName) {
-          await deleteFileCompletely(apiKey, targetStoreName, geminiFileName).catch((err) => {
-            knowledgeLogger.warn('Failed to delete file completely:', err)
-          })
+          try {
+            await deleteFileCompletely(apiKey, targetStoreName, geminiFileName)
+          } catch (err) {
+            knowledgeLogger.warn('Failed to delete file from Gemini:', err)
+            // Gemini側のエラーは無視して続行
+          }
         }
       }
+
+      // 2. Firestore ベクトル検索インデックス（knowledge_chunks）から削除
+      try {
+        const deleteRes = await fetch(`/api/knowledge/index?documentId=${encodeURIComponent(docId)}`, {
+          method: 'DELETE',
+        })
+        if (!deleteRes.ok) {
+          const errorData = await deleteRes.json().catch(() => ({}))
+          knowledgeLogger.warn('Failed to delete vector index:', errorData)
+        } else {
+          knowledgeLogger.debug('Vector index deleted for document:', docId)
+        }
+      } catch (err) {
+        knowledgeLogger.warn('Failed to delete vector index (network error):', err)
+        // ベクトルインデックスのエラーは無視して続行
+      }
+
+      // 3. Firestore documents コレクションから削除
       await deleteDocument(docId)
       setDocuments((prev) => prev.filter((d) => d.id !== docId))
+      knowledgeLogger.info('Document deleted successfully:', docId)
+      return true
+    } catch (err: any) {
+      knowledgeLogger.error('Failed to delete document:', err)
+      setError(err.message)
+      return false
+    }
+  }, [stores])
+
+  const handleMoveDocument = useCallback(async (docId: string, targetFolderId: string | null) => {
+    try {
+      await updateDocumentFolder(docId, targetFolderId)
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, folderId: targetFolderId } : d))
+      )
       return true
     } catch (err: any) {
       setError(err.message)
       return false
     }
-  }, [stores])
+  }, [])
 
   const updateProcessingStatus = useCallback(
     (
@@ -266,104 +320,218 @@ export function useDocuments() {
     }
   }, [stores, user, profile?.companyId, profile?.companyName])
 
+  // ファイルアップロードの実処理（バックグラウンド）
+  const processFileUpload = async (
+    taskId: string,
+    file: File,
+    userId: string,
+    companyId: string,
+    folderId: string | null
+  ) => {
+    const { updateTask } = getTaskActions()
+    try {
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+      if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
+
+      // ストアを取得または作成
+      let storeName = storesRef.current[0]?.storeName
+      if (!storeName) {
+        updateTask(taskId, { progress: 5, message: '準備中...' })
+        const storeResult = await createFileSearchStore(apiKey, 'Company Knowledge')
+        if (storeResult.error) throw new Error(storeResult.error)
+        storeName = storeResult.storeName
+        await saveFileSearchStore(userId, companyId, storeName, 'Company Knowledge')
+        storesRef.current = [{ id: Date.now().toString(), storeName, displayName: 'Company Knowledge' }]
+      }
+
+      // ファイルをバッファに読み込み
+      updateTask(taskId, { progress: 10, message: 'ファイルを読み込み中...' })
+      const fileBuffer = await file.arrayBuffer()
+
+      // 並列処理: Storage + AI アップロード
+      updateTask(taskId, { progress: 20, message: 'アップロード中...' })
+      const [storageResult, uploadResult] = await Promise.all([
+        uploadFileToStorage(companyId, file, file.name).catch(err => {
+          knowledgeLogger.warn('Storage upload failed:', err)
+          return { url: '', error: err.message }
+        }),
+        uploadFile(apiKey, new Uint8Array(fileBuffer), file.name, file.type),
+      ])
+      if (uploadResult.error) throw new Error(uploadResult.error)
+
+      // AI処理
+      updateTask(taskId, { progress: 50, message: '処理中...' })
+      const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+      if (importResult.error) throw new Error(importResult.error)
+
+      // ドキュメント保存
+      updateTask(taskId, { progress: 70, message: '保存中...' })
+      const savedDoc = await saveUploadedDocument(
+        userId,
+        companyId,
+        file.name,
+        file.name,
+        uploadResult.fileName,
+        storeName,
+        folderId,
+        storageResult.url || undefined,
+        file.type || undefined
+      )
+
+      // 検索準備（バックグラウンド）
+      updateTask(taskId, { progress: 85, message: '検索準備中...' })
+      const extractedText = await extractTextFromFile(apiKey, fileBuffer, file.type, file.name)
+      if (extractedText && extractedText.length > 10) {
+        // 非同期で実行（awaitしない）
+        fetch('/api/knowledge/index', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documentId: savedDoc.id,
+            documentTitle: file.name,
+            content: extractedText,
+            companyId,
+            folderId: folderId || undefined,
+          }),
+        }).catch(indexErr => knowledgeLogger.warn('Vector index failed:', indexErr))
+      }
+
+      // 完了
+      updateTask(taskId, { status: 'completed', progress: 100, message: 'アップロード完了' })
+    } catch (err: any) {
+      knowledgeLogger.error('Upload error:', err)
+      const { updateTask: ut } = getTaskActions()
+      ut(taskId, { status: 'error', progress: 0, message: 'エラーが発生しました', error: err.message })
+    }
+  }
+
+  // Driveインポートの実処理（バックグラウンド）
+  const processDriveImport = async (
+    taskId: string,
+    driveFile: DriveFile,
+    userId: string,
+    companyId: string,
+    folderId: string | null
+  ) => {
+    const { updateTask } = getTaskActions()
+    try {
+      const apiKey = BUILT_IN_GEMINI_API_KEY
+      if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
+
+      // Driveからダウンロード
+      updateTask(taskId, { progress: 10, message: 'ダウンロード中...' })
+      const { blob, fileName } = await downloadGoogleFile(driveFile)
+      const mimeType = blob.type || driveFile.mimeType || 'application/octet-stream'
+      const fileBuffer = await blob.arrayBuffer()
+
+      // ストアを取得または作成
+      let storeName = storesRef.current[0]?.storeName
+      if (!storeName) {
+        updateTask(taskId, { progress: 15, message: '準備中...' })
+        const storeResult = await createFileSearchStore(apiKey, 'Company Knowledge')
+        if (storeResult.error) throw new Error(storeResult.error)
+        storeName = storeResult.storeName
+        await saveFileSearchStore(userId, companyId, storeName, 'Company Knowledge')
+        storesRef.current = [{ id: Date.now().toString(), storeName, displayName: 'Company Knowledge' }]
+      }
+
+      // 並列処理: Storage + AI アップロード
+      updateTask(taskId, { progress: 25, message: 'アップロード中...' })
+      const [storageResult, uploadResult] = await Promise.all([
+        uploadBufferToStorage(companyId, fileBuffer, fileName, mimeType).catch(err => {
+          knowledgeLogger.warn('Storage upload failed:', err)
+          return { url: '', error: err.message }
+        }),
+        uploadFile(apiKey, new Uint8Array(fileBuffer), fileName, mimeType),
+      ])
+      if (uploadResult.error) throw new Error(uploadResult.error)
+
+      // AI処理
+      updateTask(taskId, { progress: 50, message: '処理中...' })
+      const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
+      if (importResult.error) throw new Error(importResult.error)
+
+      // ドキュメント保存
+      updateTask(taskId, { progress: 70, message: '保存中...' })
+      const savedDoc = await saveUploadedDocument(
+        userId,
+        companyId,
+        fileName,
+        driveFile.name,
+        uploadResult.fileName,
+        storeName,
+        folderId,
+        storageResult.url || undefined,
+        mimeType
+      )
+
+      // 検索準備（バックグラウンド）
+      updateTask(taskId, { progress: 85, message: '検索準備中...' })
+      const extractedText = await extractTextFromFile(apiKey, fileBuffer, mimeType, fileName)
+      if (extractedText && extractedText.length > 10) {
+        // 非同期で実行（awaitしない）
+        fetch('/api/knowledge/index', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documentId: savedDoc.id,
+            documentTitle: fileName,
+            content: extractedText,
+            companyId,
+            folderId: folderId || undefined,
+          }),
+        }).catch(indexErr => knowledgeLogger.warn('Vector index failed:', indexErr))
+      }
+
+      // 完了
+      updateTask(taskId, { status: 'completed', progress: 100, message: 'アップロード完了' })
+    } catch (err: any) {
+      knowledgeLogger.error('Drive import error:', err)
+      const { updateTask: ut } = getTaskActions()
+      ut(taskId, { status: 'error', progress: 0, message: 'エラーが発生しました', error: err.message })
+    }
+  }
+
   const handleDriveImport = useCallback(
     async (files: DriveFile[]) => {
       if (!user || !profile?.companyId || files.length === 0) return
 
-      setUploading(true)
+      const companyId = profile.companyId
+      const userId = user.uid
+      const currentFolderId = selectedFolderId
+      const { addTask } = getTaskActions()
+
+      // UIをすぐに解放（バックグラウンドで処理）
+      setUploading(false)
       setError(null)
 
-      for (const driveFile of files) {
-        const tempId = `drive-${driveFile.id}-${Date.now()}`
+      // 各ファイルを並列でバックグラウンド処理
+      files.forEach((driveFile) => {
+        const taskId = `drive-${driveFile.id}-${Date.now()}`
 
-        updateProcessingStatus(tempId, 'uploading', `${driveFile.name} をダウンロード中...`, 10)
+        // タスクを追加
+        addTask({
+          id: taskId,
+          type: 'upload',
+          title: driveFile.name,
+          status: 'processing',
+          progress: 0,
+          message: 'ダウンロード準備中...',
+        })
 
-        try {
-          const apiKey = BUILT_IN_GEMINI_API_KEY
-          if (!apiKey) throw new Error('Gemini APIキーが設定されていません')
-
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${driveFile.name} をダウンロード中...`,
-            20
-          )
-          const { blob, fileName } = await downloadGoogleFile(driveFile)
-          const mimeType = blob.type || driveFile.mimeType || 'application/octet-stream'
-
-          let storeName = await getOrCreateStore()
-          if (!storeName) throw new Error('ストアの作成に失敗しました')
-
-          // Firebase Storageにアップロード
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${fileName} をストレージにアップロード中...`,
-            35
-          )
-          const fileBuffer = await blob.arrayBuffer()
-          const storageResult = await uploadBufferToStorage(
-            profile.companyId,
-            fileBuffer,
-            fileName,
-            mimeType
-          )
-          if (storageResult.error) {
-            knowledgeLogger.warn('Storage upload failed, continuing without URL:', storageResult.error)
-          }
-
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${fileName} をGemini AIにアップロード中...`,
-            50
-          )
-          const uploadResult = await uploadFile(
-            apiKey,
-            new Uint8Array(fileBuffer),
-            fileName,
-            mimeType
-          )
-          if (uploadResult.error) throw new Error(uploadResult.error)
-
-          updateProcessingStatus(tempId, 'processing', 'インデックス作成中...', 70)
-          const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
-          if (importResult.error) throw new Error(importResult.error)
-
-          updateProcessingStatus(tempId, 'processing', '保存中...', 90)
-          await saveUploadedDocument(
-            user.uid,
-            profile.companyId,
-            fileName,
-            driveFile.name,
-            uploadResult.fileName,
-            storeName,
-            selectedFolderId,
-            storageResult.url || undefined,
-            mimeType
-          )
-
-          updateProcessingStatus(tempId, 'completed', `${driveFile.name} 完了！`, 100)
-          clearProcessingStatus(tempId)
-        } catch (err: any) {
-          setError(err.message)
-          updateProcessingStatus(tempId, 'error', `エラー: ${err.message}`, 0)
-          clearProcessingStatus(tempId, 5000)
-        }
-      }
-
-      await fetchData()
-      setUploading(false)
+        // バックグラウンドで処理開始（awaitしない）
+        processDriveImport(
+          taskId,
+          driveFile,
+          userId,
+          companyId,
+          currentFolderId
+        ).then(() => {
+          fetchData()
+        })
+      })
     },
-    [
-      user,
-      profile?.companyId,
-      selectedFolderId,
-      getOrCreateStore,
-      updateProcessingStatus,
-      clearProcessingStatus,
-      fetchData,
-    ]
+    [user, profile?.companyId, selectedFolderId, fetchData]
   )
 
   const handleFileUpload = useCallback(
@@ -371,103 +539,92 @@ export function useDocuments() {
       if (files.length === 0 || !user || !profile?.companyId) return
 
       const fileArray = Array.from(files)
-      setUploading(true)
+      const companyId = profile.companyId
+      const userId = user.uid
+      const currentFolderId = selectedFolderId
+      const { addTask } = getTaskActions()
+
+      // UIをすぐに解放（バックグラウンドで処理）
+      setUploading(false)
       setError(null)
 
-      const storeName = await getOrCreateStore()
-      if (!storeName) {
-        setUploading(false)
-        return
-      }
+      // 各ファイルを並列でバックグラウンド処理
+      fileArray.forEach((file) => {
+        const taskId = `upload-${Date.now()}-${file.name}`
 
-      const apiKey = BUILT_IN_GEMINI_API_KEY
-      if (!apiKey) {
-        setError('Gemini APIキーが設定されていません')
-        setUploading(false)
-        return
-      }
+        // タスクを追加
+        addTask({
+          id: taskId,
+          type: 'upload',
+          title: file.name,
+          status: 'processing',
+          progress: 0,
+          message: 'アップロード準備中...',
+        })
 
-      for (const file of fileArray) {
-        const tempId = `temp-${Date.now()}-${file.name}`
-
-        updateProcessingStatus(tempId, 'uploading', `${file.name} をアップロード中...`, 20)
-
-        try {
-          // Firebase Storageにアップロード
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${file.name} をストレージにアップロード中...`,
-            30
-          )
-          const storageResult = await uploadFileToStorage(profile.companyId, file, file.name)
-          if (storageResult.error) {
-            knowledgeLogger.warn('Storage upload failed, continuing without URL:', storageResult.error)
-          }
-
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${file.name} をGemini AIにアップロード中...`,
-            50
-          )
-          const fileBuffer = await file.arrayBuffer()
-          const uploadResult = await uploadFile(
-            apiKey,
-            new Uint8Array(fileBuffer),
-            file.name,
-            file.type
-          )
-          if (uploadResult.error) throw new Error(uploadResult.error)
-
-          updateProcessingStatus(
-            tempId,
-            'processing',
-            `${file.name} のインデックス作成中...`,
-            70
-          )
-          const importResult = await importFileToStore(apiKey, storeName, uploadResult.fileName)
-          if (importResult.error) throw new Error(importResult.error)
-
-          updateProcessingStatus(tempId, 'processing', `${file.name} を保存中...`, 90)
-          await saveUploadedDocument(
-            user.uid,
-            profile.companyId,
-            file.name,
-            file.name,
-            uploadResult.fileName,
-            storeName,
-            selectedFolderId,
-            storageResult.url || undefined,
-            file.type || undefined
-          )
-
-          updateProcessingStatus(tempId, 'completed', `${file.name} 完了！`, 100)
-          clearProcessingStatus(tempId)
-        } catch (err: any) {
-          setError(err.message)
-          updateProcessingStatus(tempId, 'error', `${file.name}: ${err.message}`, 0)
-          clearProcessingStatus(tempId, 5000)
-        }
-      }
-
-      await fetchData()
-      setUploading(false)
+        // バックグラウンドで処理開始（awaitしない）
+        processFileUpload(
+          taskId,
+          file,
+          userId,
+          companyId,
+          currentFolderId
+        ).then(() => {
+          // 完了後にデータを更新
+          fetchData()
+        })
+      })
     },
-    [
-      user,
-      profile?.companyId,
-      selectedFolderId,
-      getOrCreateStore,
-      updateProcessingStatus,
-      clearProcessingStatus,
-      fetchData,
-    ]
+    [user, profile?.companyId, selectedFolderId, fetchData]
   )
 
   const filteredDocuments = selectedFolderId
     ? documents.filter((d) => d.folderId === selectedFolderId)
     : documents
+
+  // テキストファイルからテキストを抽出
+  async function extractTextFromFile(
+    apiKey: string,
+    fileBuffer: ArrayBuffer,
+    mimeType: string,
+    fileName: string
+  ): Promise<string> {
+    try {
+      // テキストファイルはそのまま
+      if (mimeType === 'text/plain' || mimeType === 'text/markdown' || mimeType === 'text/csv') {
+        return new TextDecoder().decode(fileBuffer)
+      }
+
+      // Gemini APIでテキスト抽出
+      const ai = createGeminiClient(apiKey)
+      const base64Data = btoa(
+        new Uint8Array(fileBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: base64Data } },
+              {
+                text: `このドキュメント「${fileName}」の全テキスト内容を抽出してください。
+フォーマットや構造は保持しつつ、プレーンテキストとして出力してください。
+要約や解説は不要です。ドキュメントの内容をそのまま出力してください。`,
+              },
+            ],
+          },
+        ],
+        config: { temperature: 0, maxOutputTokens: 8000 },
+      })
+
+      return response.text || ''
+    } catch (error) {
+      knowledgeLogger.error('Text extraction error:', error)
+      return ''
+    }
+  }
 
   return {
     // State
@@ -488,6 +645,7 @@ export function useDocuments() {
     handleUpdateFolder,
     handleDeleteFolder,
     handleDeleteDocument,
+    handleMoveDocument,
     handleDriveImport,
     handleFileUpload,
     fetchData,

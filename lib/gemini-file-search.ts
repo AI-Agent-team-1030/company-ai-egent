@@ -2,12 +2,98 @@ import { GoogleGenAI } from '@google/genai'
 import { FILE_SEARCH_MODEL, DEFAULT_MODEL } from './ai-providers'
 import { geminiLogger } from './logger'
 
-// Gemini クライアントの初期化
+// ===========================================
+// レート制限エラーとリトライ機構
+// ===========================================
+
+// 429エラー用の専用例外クラス
+export class RateLimitError extends Error {
+  constructor(message: string = 'APIのレート制限に達しました。しばらく待ってから再度お試しください。') {
+    super(message)
+    this.name = 'RateLimitError'
+  }
+}
+
+// 429エラーかどうかを判定
+function isRateLimitError(error: any): boolean {
+  if (!error) return false
+
+  // ステータスコードでチェック
+  if (error.status === 429) return true
+  if (error.code === 429) return true
+
+  // メッセージでチェック
+  const message = error.message || error.toString()
+  return (
+    message.includes('429') ||
+    message.includes('RESOURCE_EXHAUSTED') ||
+    message.includes('Quota exceeded') ||
+    message.includes('rate limit') ||
+    message.includes('Too Many Requests')
+  )
+}
+
+// リトライ機構付きAPI呼び出し（指数バックオフ）
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number
+    baseDelay?: number
+    operationName?: string
+  } = {}
+): Promise<T> {
+  const { maxRetries = 3, baseDelay = 1000, operationName = 'API call' } = options
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error: any) {
+      const isRateLimit = isRateLimitError(error)
+
+      if (isRateLimit && attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt)
+        geminiLogger.warn(`[${operationName}] Rate limit hit, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+
+      // 最終リトライでも429の場合はRateLimitErrorを投げる
+      if (isRateLimit) {
+        geminiLogger.error(`[${operationName}] Rate limit exceeded after ${maxRetries} retries`)
+        throw new RateLimitError()
+      }
+
+      throw error
+    }
+  }
+
+  throw new Error(`${operationName} failed after ${maxRetries} retries`)
+}
+
+// Vertex AI 設定
+const VERTEX_AI_PROJECT = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'corporate-ai-platform'
+const VERTEX_AI_LOCATION = process.env.NEXT_PUBLIC_GCP_LOCATION || 'asia-northeast1'
+const USE_VERTEX_AI = process.env.NEXT_PUBLIC_USE_VERTEX_AI === 'true'
+
+// Gemini クライアントの初期化（Vertex AI または AI Studio）
 export function createGeminiClient(apiKey?: string) {
+  // Vertex AI モード（有料、レート制限が高い）
+  if (USE_VERTEX_AI) {
+    geminiLogger.debug('[Gemini] Using Vertex AI mode')
+    return new GoogleGenAI({
+      vertexai: true,
+      project: VERTEX_AI_PROJECT,
+      location: VERTEX_AI_LOCATION,
+    })
+  }
+
+  // AI Studio モード（フォールバック）
   const key = apiKey || process.env.NEXT_PUBLIC_GEMINI_API_KEY
   if (!key) {
     throw new Error('Gemini API キーが設定されていません')
   }
+  // APIキーの末尾4文字をログ出力（デバッグ用）
+  geminiLogger.debug('[Gemini] Using API key ending with:', key.slice(-4))
   return new GoogleGenAI({ apiKey: key })
 }
 
@@ -123,14 +209,17 @@ ${userQuestion}
 - 専門用語と一般用語の両方を考慮する
 - 日本語で出力`
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.2,
-        maxOutputTokens: 500,
-      },
-    })
+    const response = await withRetry(
+      () => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 500,
+        },
+      }),
+      { operationName: 'generateSearchQuery' }
+    )
 
     const responseText = response.text?.trim() || ''
 
@@ -194,14 +283,17 @@ ${citationTexts}
 関連性が非常に低いものは除外してください。
 番号のみ出力（説明不要）：`
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-      config: {
-        temperature: 0,
-        maxOutputTokens: 50,
-      },
-    })
+    const response = await withRetry(
+      () => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          temperature: 0,
+          maxOutputTokens: 50,
+        },
+      }),
+      { operationName: 'rerankResults' }
+    )
 
     const orderStr = response.text?.trim() || ''
     const order = orderStr.split(',').map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n) && n >= 0 && n < citations.length)
@@ -239,19 +331,22 @@ async function executeFileSearch(
   query: string
 ): Promise<Citation[]> {
   try {
-    const response = await ai.models.generateContent({
-      model: FILE_SEARCH_MODEL,
-      contents: query,
-      config: {
-        tools: [
-          {
-            fileSearch: {
-              fileSearchStoreNames: storeNames.slice(0, 5), // API制限: 最大5個
+    const response: any = await withRetry(
+      () => ai.models.generateContent({
+        model: FILE_SEARCH_MODEL,
+        contents: query,
+        config: {
+          tools: [
+            {
+              fileSearch: {
+                fileSearchStoreNames: storeNames.slice(0, 5), // API制限: 最大5個
+              },
             },
-          },
-        ],
-      },
-    })
+          ],
+        },
+      }),
+      { operationName: 'executeFileSearch' }
+    )
 
     const citations: Citation[] = []
     if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
@@ -302,8 +397,8 @@ export async function advancedKnowledgeSearch(
     const ai = createGeminiClient(apiKey)
     geminiLogger.debug('[Advanced Search] Starting with', queries.length, 'queries')
 
-    // 複数クエリで並列検索
-    const searchPromises = queries.slice(0, 3).map(query =>
+    // 複数クエリで並列検索（レート制限対策で最大2並列に制限）
+    const searchPromises = queries.slice(0, 2).map(query =>
       executeFileSearch(ai, storeNames, query)
     )
     const results = await Promise.all(searchPromises)
@@ -316,8 +411,8 @@ export async function advancedKnowledgeSearch(
     allCitations = deduplicateCitations(allCitations)
     geminiLogger.debug('[Advanced Search] Citations after dedup:', allCitations.length)
 
-    // 再ランキング（結果が多い場合のみ）
-    if (allCitations.length > 2) {
+    // 再ランキング（結果が5件以上の場合のみ - レート制限対策）
+    if (allCitations.length >= 5) {
       allCitations = await rerankResults(apiKey, originalQuestion, allCitations)
     }
 

@@ -10,15 +10,19 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 
 interface ChatPanelContextType {
   isOpen: boolean
+  conversationId: string | null
   togglePanel: () => void
   openPanel: () => void
   closePanel: () => void
+  openConversation: (id: string) => void
+  startNewConversation: () => void
 }
 
 const ChatPanelContext = createContext<ChatPanelContextType | undefined>(undefined)
 
 export function ChatPanelProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false) // デフォルトで閉じている
+  const [isOpen, setIsOpen] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
 
   const togglePanel = useCallback(() => {
     setIsOpen(prev => !prev)
@@ -32,8 +36,26 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     setIsOpen(false)
   }, [])
 
+  const openConversation = useCallback((id: string) => {
+    setConversationId(id)
+    setIsOpen(true)
+  }, [])
+
+  const startNewConversation = useCallback(() => {
+    setConversationId(null)
+    setIsOpen(true)
+  }, [])
+
   return (
-    <ChatPanelContext.Provider value={{ isOpen, togglePanel, openPanel, closePanel }}>
+    <ChatPanelContext.Provider value={{
+      isOpen,
+      conversationId,
+      togglePanel,
+      openPanel,
+      closePanel,
+      openConversation,
+      startNewConversation,
+    }}>
       {children}
     </ChatPanelContext.Provider>
   )

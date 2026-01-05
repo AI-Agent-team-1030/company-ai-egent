@@ -1,7 +1,32 @@
 // 統合AIプロバイダーライブラリ
 // Claude (Anthropic), GPT (OpenAI), Gemini (Google) をサポート
 
+import { GoogleGenAI } from '@google/genai'
 import { aiLogger } from './logger'
+
+// Vertex AI 設定
+const VERTEX_AI_PROJECT = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'corporate-ai-platform'
+const VERTEX_AI_LOCATION = process.env.NEXT_PUBLIC_GCP_LOCATION || 'asia-northeast1'
+const USE_VERTEX_AI = process.env.NEXT_PUBLIC_USE_VERTEX_AI === 'true'
+
+// Gemini クライアントの初期化
+function createGeminiClient(apiKey?: string) {
+  if (USE_VERTEX_AI) {
+    aiLogger.debug('[Gemini] Using Vertex AI mode')
+    return new GoogleGenAI({
+      vertexai: true,
+      project: VERTEX_AI_PROJECT,
+      location: VERTEX_AI_LOCATION,
+    })
+  }
+  const key = apiKey || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  if (!key) {
+    throw new Error('Gemini API キーが設定されていません')
+  }
+  // APIキーの末尾4文字をログ出力（デバッグ用）
+  aiLogger.debug('[Gemini] Using API key ending with:', key.slice(-4))
+  return new GoogleGenAI({ apiKey: key })
+}
 
 export type AIProvider = 'anthropic' | 'openai' | 'gemini'
 
@@ -45,10 +70,10 @@ export const ALL_MODELS: ModelOption[] = [
 ]
 
 // ファイルサーチ用モデル
-export const FILE_SEARCH_MODEL = 'gemini-2.5-pro'
+export const FILE_SEARCH_MODEL = 'gemini-2.5-flash'
 
 // デフォルトモデル
-export const DEFAULT_MODEL = 'gemini-2.5-pro'
+export const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 export const AI_PROVIDERS: AIProviderConfig[] = [
   {
@@ -193,7 +218,7 @@ async function callGPT(
   }
 }
 
-// Gemini API (Google)
+// Gemini API (Google) - SDK ベース（Vertex AI 対応）
 async function callGemini(
   apiKey: string,
   messages: ChatMessage[],
@@ -201,7 +226,9 @@ async function callGemini(
   systemPrompt?: string
 ): Promise<ChatResponse> {
   try {
-    const contents: { role: string; parts: { text: string }[] }[] = []
+    const ai = createGeminiClient(apiKey)
+
+    const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = []
 
     // システムプロンプトを最初に追加
     if (systemPrompt) {
@@ -217,24 +244,12 @@ async function callGemini(
       })
     })
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ contents }),
-      }
-    )
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+    })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error?.message || 'Gemini API エラー')
-    }
-
-    const data = await response.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const text = response.text || ''
 
     return {
       content: text,

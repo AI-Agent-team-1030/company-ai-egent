@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     if (geminiKey) {
       try {
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
         const prompt = buildOrchestrationPrompt(message, conversationContext)
         const result = await model.generateContent(prompt)

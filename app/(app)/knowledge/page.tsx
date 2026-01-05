@@ -36,6 +36,7 @@ export default function KnowledgePage() {
     handleUpdateFolder,
     handleDeleteFolder,
     handleDeleteDocument,
+    handleMoveDocument,
     handleDriveImport,
     handleFileUpload,
   } = useDocuments()
@@ -105,6 +106,7 @@ export default function KnowledgePage() {
         onCreateFolder={openCreateFolderModal}
         onEditFolder={openEditFolderModal}
         onDeleteFolder={handleDeleteFolder}
+        onMoveDocument={handleMoveDocument}
       />
 
       {/* Stats */}
@@ -124,6 +126,7 @@ export default function KnowledgePage() {
         folders={folders}
         loading={loading}
         onDelete={handleDeleteDocument}
+        onMove={handleMoveDocument}
       />
 
       <FolderModal

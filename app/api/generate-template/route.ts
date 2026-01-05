@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `あなたはプロンプトテンプレート生成の専門家です。
 ユーザーの説明に基づいて、業務で使えるプロンプトテンプレートを生成してください。

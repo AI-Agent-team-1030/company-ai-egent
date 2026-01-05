@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireFirebaseAuth } from '@/lib/firebase-api-auth'
-import { checkStrictRateLimit } from '@/lib/rate-limit'
 import { apiLogger } from '@/lib/logger'
 import { getAgentById } from '@/lib/firestore-agents'
 import {
@@ -33,10 +32,6 @@ function getActualModelId(model: AgentModel): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate Limitチェック
-  const rateLimit = checkStrictRateLimit(req)
-  if (!rateLimit.allowed) return rateLimit.error
-
   // 認証チェック
   const auth = await requireFirebaseAuth(req)
   if (!auth.authorized) return auth.error!
@@ -100,6 +95,9 @@ export async function POST(req: NextRequest) {
           driveAccessToken: undefined, // TODO: Firestoreから取得
           driveFolderId: undefined, // TODO: Firestoreから取得
           fileSearchStores: [], // TODO: Firestoreから取得
+          // Firestore Vector Search用
+          companyId,
+          useFirestoreVectorSearch: true, // Firestore Vector Searchを使用
         }
 
         // ツール実行

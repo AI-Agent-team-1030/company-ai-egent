@@ -75,6 +75,24 @@ service cloud.firestore {
       }
     }
 
+    // エージェント履歴（レガシー） - ユーザーは自分の履歴のみアクセス可能
+    match /agent_histories/{historyId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
+    }
+
+    // エージェント実行履歴 - ユーザーは自分の履歴のみアクセス可能
+    match /agentExecutions/{executionId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
     // 企業情報 - 認証済みユーザーは読み取り可能（サインアップ時の企業検索のため）
     match /companies/{companyId} {
       allow read: if request.auth != null;

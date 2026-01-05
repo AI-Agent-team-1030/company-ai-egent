@@ -208,42 +208,12 @@ interface OnedriveAuthResult {
   error: { message: string } | null
 }
 
-// OneDrive接続（MSALポップアップ方式）
+// OneDrive接続（現在未サポート）
 export async function linkOneDrive(): Promise<OnedriveAuthResult> {
-  const currentUser = auth.currentUser
-  if (!currentUser) {
-    return { accessToken: null, error: { message: 'ログインしていません' } }
-  }
-
-  // クライアントIDが設定されているか確認
-  if (!process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID) {
-    return {
-      accessToken: null,
-      error: { message: 'Microsoft Client IDが設定されていません。Azure ADアプリの登録が必要です。' }
-    }
-  }
-
-  try {
-    // MSALを動的インポート（サーバーサイドでのエラーを防ぐ）
-    const { initializeMsal, onedriveScopes } = await import('./msal-config')
-    const msalInstance = await initializeMsal()
-
-    // ポップアップでログイン
-    const response = await msalInstance.loginPopup({
-      ...onedriveScopes,
-      prompt: 'select_account', // アカウント選択画面を毎回表示
-    })
-
-    const accessToken = response.accessToken
-
-    if (accessToken) {
-      sessionStorage.setItem('onedrive_token', accessToken)
-    }
-
-    return { accessToken, error: null }
-  } catch (error: unknown) {
-    console.error('[OneDrive] Auth error:', error)
-    return { accessToken: null, error: { message: getMicrosoftErrorMessage(error) } }
+  // OneDrive連携は現在未サポート
+  return {
+    accessToken: null,
+    error: { message: 'OneDrive連携は現在利用できません。' }
   }
 }
 

@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useChatPanel } from '@/contexts/ChatPanelContext'
 import { getConversations, deleteConversation as firestoreDeleteConversation } from '@/lib/firestore-chat'
 import { getAgentExecutions, deleteAgentExecution as firestoreDeleteAgentExecution, type AgentExecution } from '@/lib/firestore-agent'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -34,6 +35,7 @@ export function useSidebarState() {
   const router = useRouter()
   const { user, profile, signOut } = useAuth()
   const { isMobileOpen, closeMobileSidebar } = useSidebarStore()
+  const { openConversation, startNewConversation } = useChatPanel()
 
   // State
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -83,7 +85,7 @@ export function useSidebarState() {
     if (!user) return
     try {
       sidebarLogger.debug('Fetching agent histories for user:', user.uid)
-      const result = await getAgentExecutions(user.uid)
+      const result = await getAgentExecutions(user.uid, 20) // サイドバー用に20件に制限
       const mapped: AgentHistory[] = result.map((exec) => ({
         id: exec.id,
         taskSummary: exec.taskSummary,
@@ -101,8 +103,8 @@ export function useSidebarState() {
 
   useEffect(() => {
     if (user) {
-      fetchConversations()
-      fetchAgentHistories()
+      // 並列で取得して高速化
+      Promise.all([fetchConversations(), fetchAgentHistories()])
     }
   }, [user, fetchConversations, fetchAgentHistories])
 
@@ -158,17 +160,13 @@ export function useSidebarState() {
         setConversations((prev) => prev.filter((conv) => conv.id !== conversationId))
         setDeleteConfirmId(null)
         await firestoreDeleteConversation(conversationId)
-
-        if (pathname.includes(conversationId)) {
-          router.push('/chat')
-        }
         showMessage('会話を削除しました')
       } catch (error) {
         await fetchConversations()
         showMessage('削除に失敗しました')
       }
     },
-    [pathname, router, fetchConversations, showMessage]
+    [fetchConversations, showMessage]
   )
 
   const handleBulkDelete = useCallback(async () => {
@@ -188,10 +186,6 @@ export function useSidebarState() {
       const results = await Promise.all(deletePromises)
       const failedCount = results.filter((res) => !res.ok).length
 
-      if (idsToDelete.some((id) => pathname.includes(id))) {
-        router.push('/chat')
-      }
-
       if (failedCount === 0) {
         showMessage(`${idsToDelete.length}件の会話を削除しました`)
       } else if (failedCount === idsToDelete.length) {
@@ -205,7 +199,7 @@ export function useSidebarState() {
       await fetchConversations()
       showMessage('削除に失敗しました')
     }
-  }, [selectedIds, pathname, router, fetchConversations, showMessage])
+  }, [selectedIds, fetchConversations, showMessage])
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -239,14 +233,15 @@ export function useSidebarState() {
 
   const navigateToChat = useCallback(
     (conversationId?: string) => {
+      // ページ遷移ではなく、右サイドパネルを開く
       if (conversationId) {
-        router.push(`/chat?id=${conversationId}`)
+        openConversation(conversationId)
       } else {
-        router.push('/chat')
+        startNewConversation()
       }
       closeMobileSidebar()
     },
-    [router, closeMobileSidebar]
+    [openConversation, startNewConversation, closeMobileSidebar]
   )
 
   const navigateToSettings = useCallback(() => {

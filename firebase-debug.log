@@ -1,154 +1,624 @@
-[debug] [2025-12-30T10:19:47.608Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:47.609Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:47.609Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:47.609Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:47.616Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:47.617Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:49.078Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:49.079Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:49.080Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:49.080Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:49.083Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:49.083Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:19:49.084Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:19:49.084Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.748Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.750Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.750Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.750Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.756Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.756Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.950Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.951Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.951Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.951Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.953Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.953Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:40:53.953Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:40:53.953Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.019Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.020Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.020Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.020Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.027Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.027Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.236Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.237Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.237Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.238Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.239Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.239Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:44:53.240Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:44:53.240Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.415Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.416Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.416Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.416Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.423Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.423Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.612Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.612Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.613Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.613Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.614Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.614Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T10:55:54.614Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T10:55:54.615Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.735Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.736Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.737Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.737Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.744Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.744Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.914Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.914Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.915Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.915Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.924Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.924Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:11:19.924Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:11:19.924Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.435Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.436Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.436Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.437Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.443Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.444Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.615Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.615Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.616Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.616Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.620Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.620Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:18:29.621Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:18:29.621Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.367Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.368Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.368Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.368Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.375Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.375Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.561Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.562Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.562Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.563Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.564Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.564Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2025-12-30T23:48:05.565Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-12-30T23:48:05.565Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:03.887Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:03.889Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:03.889Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:03.889Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:03.895Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:03.895Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:04.065Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:04.065Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:04.065Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:04.066Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:04.067Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:04.067Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T07:25:04.067Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T07:25:04.067Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.713Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.714Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.714Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.714Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.721Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.721Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.928Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.928Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.929Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.929Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.931Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.931Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T11:09:25.931Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T11:09:25.931Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.310Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.311Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.311Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.311Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.318Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.318Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.523Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.523Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.524Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.524Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.534Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.534Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T14:47:53.534Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T14:47:53.534Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:41.959Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:41.961Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:41.961Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:41.961Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:41.968Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:41.968Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:42.157Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:42.158Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:42.158Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:42.158Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:42.159Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:42.159Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
-[debug] [2026-01-02T15:27:42.159Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-02T15:27:42.159Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:09.386Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:09.387Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:09.387Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:09.387Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:09.387Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.387Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.387Z] > refreshing access token with scopes: []
+[debug] [2026-01-05T09:07:09.388Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-01-05T09:07:09.388Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.389Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.389Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.389Z] > refreshing access token with scopes: []
+[debug] [2026-01-05T09:07:09.389Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-01-05T09:07:09.389Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.390Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:09.390Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:09.390Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.390Z] Checked if tokens are valid: false, expires at: 1767603651593
+[debug] [2026-01-05T09:07:09.390Z] > refreshing access token with scopes: []
+[debug] [2026-01-05T09:07:09.390Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-01-05T09:07:09.390Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.511Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-01-05T09:07:09.511Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.522Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:07:09.535Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-01-05T09:07:09.535Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.543Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:07:09.548Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-01-05T09:07:09.548Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-01-05T09:07:09.557Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:07:09.855Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:07:09.855Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.860Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.861Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.861Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.869Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.870Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.870Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.870Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:09.870Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.870Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.871Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.871Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.872Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.872Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.872Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.872Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.873Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.873Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.874Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:07:09.874Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:09.874Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:07:09.874Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.611Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:07:10.611Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:07:10.612Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.612Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.613Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.616Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.616Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.616Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.616Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.616Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.616Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.617Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.617Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.617Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.617Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.618Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.619Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:07:10.619Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.658Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:07:10.658Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:07:10.664Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.664Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.665Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.665Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.669Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.669Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.669Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.669Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.670Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.670Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.678Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.678Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.679Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.679Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:10.679Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.679Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.683Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.683Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.684Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.684Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.686Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.686Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.687Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.687Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.687Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:07:10.687Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.688Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:07:10.688Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:07:10.752Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:07:10.752Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:07:10.995Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com 200
+[debug] [2026-01-05T09:07:10.995Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.001Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com 200
+[debug] [2026-01-05T09:07:11.002Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.006Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:07:11.006Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.007Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:07:11.007Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.008Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com 200
+[debug] [2026-01-05T09:07:11.008Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.013Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:07:11.013Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.066Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:11.066Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:11.066Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:11.066Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:11.066Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:07:11.214Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:07:11.214Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.343Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:07:11.344Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:07:11.345Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:11.345Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:11.573Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:07:11.573Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:07:11.583Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:07:11.584Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:07:11.584Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:07:11.585Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.829Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com 200
+[debug] [2026-01-05T09:07:11.829Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.844Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com 200
+[debug] [2026-01-05T09:07:11.844Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.849Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com 200
+[debug] [2026-01-05T09:07:11.849Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseremoteconfig.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.858Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:07:11.858Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.863Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com 200
+[debug] [2026-01-05T09:07:11.863Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.868Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com 200
+[debug] [2026-01-05T09:07:11.868Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/fcm.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.873Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com 200
+[debug] [2026-01-05T09:07:11.873Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/identitytoolkit.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.894Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:07:11.895Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.895Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:07:11.895Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.899Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:07:11.899Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:07:11.953Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:11.953Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:07:11.953Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:11.953Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:07:11.953Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:07:12.198Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:07:12.198Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:07:12.199Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:07:12.199Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:46.752Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:46.754Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:46.754Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:46.754Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:46.754Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.754Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.754Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.754Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.754Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:46.754Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:46.754Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.755Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:46.755Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:08:46.755Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:08:46.756Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:08:47.080Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:08:47.080Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:08:47.085Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.086Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.086Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.086Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.097Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.097Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.097Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.097Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.098Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.098Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.099Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.099Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.100Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.100Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.100Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:08:47.100Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.102Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:08:47.102Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:08:47.102Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.102Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.102Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.102Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.105Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.105Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.105Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.105Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.105Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.105Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.106Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.106Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.107Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.107Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.107Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:08:47.107Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.811Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:08:47.812Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:08:47.812Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.813Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.813Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.813Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.816Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.816Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.816Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.816Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:47.816Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.816Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.819Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.819Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.820Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:08:47.820Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.821Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:08:47.821Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:08:47.988Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:08:47.988Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:08:47.995Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:08:47.995Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:08:48.018Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:08:48.018Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.029Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:08:48.029Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.034Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:08:48.034Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.056Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:08:48.056Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.069Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:08:48.069Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.122Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:48.122Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:48.122Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:48.122Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:48.122Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:08:48.125Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:08:48.125Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.178Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:48.178Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:48.178Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:48.178Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:08:48.179Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:08:48.702Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:08:48.703Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.704Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:08:48.704Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:08:48.746Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:08:48.746Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:48.760Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:08:48.760Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:08:49.174Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:08:49.174Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:08:49.176Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:49.176Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:08:49.187Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:08:49.187Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:08:49.188Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:08:49.188Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:11.821Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:11.822Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:11.822Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:11.822Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:11.822Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.822Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.823Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.823Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.823Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:11.823Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:11.823Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.823Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:11.823Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:11.824Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:11.824Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:12.869Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:12.869Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:12.873Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.873Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.874Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.874Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.881Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.881Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.882Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.882Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.882Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.882Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.883Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.883Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.883Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.883Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.884Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:12.884Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.901Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:12.902Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:12.902Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.902Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.902Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.902Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.904Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.904Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.904Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.904Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.904Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.904Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.904Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.904Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.905Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.905Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.905Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:12.905Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.913Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:12.913Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:12.914Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.914Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.914Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.914Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.915Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.915Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.915Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.915Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:12.915Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.915Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.916Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.916Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.916Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:12.916Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:12.917Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:12.917Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:13.802Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:13.802Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:13.811Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:13.811Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:13.813Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:13.813Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:13.837Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:13.837Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.843Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:13.843Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.858Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:13.858Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.860Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:13.860Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.867Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:13.867Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.887Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:13.887Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.893Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:13.893Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.898Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:13.898Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:13.910Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:13.910Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:13.910Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:13.910Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:13.910Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:13.945Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:13.945Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:13.945Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:13.945Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:13.945Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:13.951Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:13.951Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:14.901Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:14.902Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:14.903Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:14.904Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:14.985Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:14.985Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:14.987Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:14.987Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:30.526Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:30.527Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:30.528Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:30.528Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.528Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:30.528Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.528Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.529Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:30.529Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:30.530Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:30.820Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:30.820Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:30.826Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.826Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.827Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.827Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.837Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.837Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.838Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.838Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:30.838Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:30.838Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:30.839Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:30.839Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:30.840Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:30.840Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:30.840Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:30.840Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.555Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:31.556Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:31.557Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.557Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.557Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.557Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.563Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.563Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.563Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.563Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.563Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.563Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.565Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.565Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.566Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.566Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.567Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:31.567Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.582Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:31.582Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:31.582Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.582Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.582Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.582Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.584Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.584Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.584Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.584Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:31.584Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.584Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.585Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.585Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.585Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:09:31.585Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.586Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:09:31.586Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:09:31.693Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:31.693Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:31.755Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:31.756Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:31.766Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:31.766Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:31.788Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:31.788Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.452Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:32.452Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:32.453Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:09:32.453Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:09:32.472Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:32.472Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.491Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:32.491Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.501Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:09:32.501Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.511Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:32.511Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.516Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:09:32.516Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.544Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:09:32.544Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:09:32.567Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:32.568Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:32.568Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:32.568Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:32.568Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:32.599Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:32.599Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:32.599Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:32.599Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:09:32.599Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:09:33.571Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:33.571Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:33.572Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:33.572Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:09:33.603Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:09:33.603Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:09:33.603Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:09:33.603Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:44.194Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:44.195Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:44.195Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:44.195Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:44.195Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.195Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.195Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.196Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.196Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:44.196Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:44.196Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.196Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.196Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:10:44.197Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:10:44.197Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:10:44.668Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:10:44.668Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:10:44.674Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.675Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.676Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.676Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.687Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.687Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.688Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.688Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:44.688Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:10:44.688Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:44.689Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:10:44.689Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:44.690Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:10:44.690Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:44.690Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:10:44.690Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.233Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:10:45.233Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:10:45.233Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.233Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.234Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.234Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.236Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.236Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.236Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.236Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.236Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.236Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.236Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.236Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.237Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.237Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.237Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:10:45.237Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.290Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:10:45.290Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:10:45.290Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.290Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.290Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.290Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.291Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.291Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.291Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.291Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:45.291Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.291Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.292Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.292Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.293Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-01-05T09:10:45.293Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.293Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [none]
+[debug] [2026-01-05T09:10:45.293Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com x-goog-quota-user=projects/corporate-ai-platform
+[debug] [2026-01-05T09:10:45.547Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:10:45.547Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:10:45.609Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:10:45.609Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:45.618Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:10:45.618Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:45.683Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:10:45.683Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.099Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:10:46.099Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:10:46.146Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:10:46.146Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.147Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com 403
+[debug] [2026-01-05T09:10:46.147Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseio.com [omitted]
+[debug] [2026-01-05T09:10:46.160Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:10:46.160Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.205Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:10:46.206Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.218Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-01-05T09:10:46.218Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.235Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com 200
+[debug] [2026-01-05T09:10:46.235Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.236Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-05T09:10:46.236Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/corporate-ai-platform/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-01-05T09:10:46.289Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:46.289Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:46.289Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:46.289Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:46.289Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:10:46.296Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:46.296Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:46.296Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:46.296Z] Checked if tokens are valid: true, expires at: 1767607628548
+[debug] [2026-01-05T09:10:46.296Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo [none]
+[debug] [2026-01-05T09:10:46.545Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:10:46.546Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:10:46.547Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:46.547Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)
+[debug] [2026-01-05T09:10:47.333Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo 200
+[debug] [2026-01-05T09:10:47.333Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/corporate-ai-platform/billingInfo {"name":"projects/corporate-ai-platform/billingInfo","projectId":"corporate-ai-platform","billingAccountName":"billingAccounts/015930-4A07B3-BEB332","billingEnabled":true}
+[debug] [2026-01-05T09:10:47.334Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-05T09:10:47.334Z] > authorizing via signed-in user (gkoinobori0505@gmail.com)

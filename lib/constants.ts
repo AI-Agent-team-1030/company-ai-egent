@@ -161,13 +161,13 @@ export const PAGINATION = {
 
 export const AI_MODELS = {
   /** デフォルトモデル */
-  DEFAULT: 'gemini-2.5-pro',
+  DEFAULT: 'gemini-2.5-flash',
   /** ファイル検索用モデル */
-  FILE_SEARCH: 'gemini-2.5-pro',
+  FILE_SEARCH: 'gemini-2.5-flash',
   /** クエリ生成用モデル（軽量） */
-  QUERY_GENERATION: 'gemini-2.0-flash',
+  QUERY_GENERATION: 'gemini-2.5-flash',
   /** 再ランキング用モデル（軽量） */
-  RERANKING: 'gemini-2.0-flash',
+  RERANKING: 'gemini-2.5-flash',
 } as const
 
 // ============================================

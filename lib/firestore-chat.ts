@@ -70,10 +70,10 @@ export async function getConversations(userId: string) {
       createdAt: doc.data().createdAt?.toDate?.() || new Date(),
       updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
     }))
-    // updatedAtで降順ソートして最新50件を返す
+    // updatedAtで降順ソートして最新20件を返す（サイドバー表示用）
     return conversations
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 50)
+      .slice(0, 20)
   } catch (error: any) {
     // インデックスエラーは警告のみ（初回セットアップ時は発生しうる）
     if (error?.code === 'failed-precondition') {
@@ -426,6 +426,20 @@ export async function deleteDocument(documentId: string) {
     return true
   } catch (error) {
     firestoreLogger.error('Error deleting document:', error)
+    throw error
+  }
+}
+
+// ドキュメントのフォルダを更新（移動）
+export async function updateDocumentFolder(documentId: string, folderId: string | null) {
+  try {
+    await updateDoc(doc(db, 'documents', documentId), {
+      folderId: folderId,
+      updatedAt: new Date(),
+    })
+    return true
+  } catch (error) {
+    firestoreLogger.error('Error updating document folder:', error)
     throw error
   }
 }
